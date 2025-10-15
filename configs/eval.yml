@@ -1,0 +1,19 @@
+########## CONFIGURATION ##########
+
+
+# Log directory
+log_dir: ./logs-seed-only/gpt-4o/harmbench
+
+# Algorithm
+algo: rainbowplus
+method: all # Ignore this param, only valid for old version
+
+# Judge LLM
+judge_llm:
+  type_: openai
+  model_kwargs:
+    model: gpt-4o
+  sampling_params:
+    temperature: 0.6
+    top_p: 0.9
+    max_tokens: 512

@@ -1,0 +1,42 @@
+
+# Run experiments on local (updated)
+
+python -m rainbowplus.rainbowplus --config_file configs/persona-experts.yml
+python -m rainbowplus.rainbowplus --config_file configs/persona-users.yml
+
+python -m rainbowplus.rainbowplus --config_file configs/rainbow-persona-experts.yml
+python -m rainbowplus.rainbowplus --config_file configs/rainbow-persona-users.yml
+
+python -m rainbowplus.rainbowplus --config_file configs/rainbow-RT1.yml
+python -m rainbowplus.rainbowplus --config_file configs/rainbow-RT2.yml
+
+python -m rainbowplus.rainbowplus --config_file configs/rainbow-User1.yml
+python -m rainbowplus.rainbowplus --config_file configs/rainbow-User2.yml
+
+# Check results
+
+python analyze_comprehensive_logs.py logs-{experiment-name}/gpt-4o/harmbench  
+
+python run_attack_analysis.py logs-{experiment-name}/gpt-4o/harmbench/comprehensive_log_global.json --output logs-{experiment-name}/gpt-4o/harmbench/attack_analysis
+
+
+python run_attack_analysis.py logs-official-rainbowplus/gpt-4o/harmbench/comprehensive_log_global.json --output logs-official-rainbowplus/gpt-4o/harmbench/attack_analysis
+python run_attack_analysis.py logs-official-rainbow-persona-experts/gpt-4o/harmbench/comprehensive_log_global.json --output logs-official-rainbow-persona-experts/gpt-4o/harmbench/attack_analysis
+python run_attack_analysis.py logs-official-rainbow-persona-users/gpt-4o/harmbench/comprehensive_log_global.json --output logs-official-rainbow-persona-users/gpt-4o/harmbench/attack_analysis
+python analyze_comprehensive_logs.py logs-official-rainbow-persona-users/gpt-4o/harmbench  
+
+
+python analyze_comprehensive_logs.py logs-official-RP-RT1-political/gpt-4o/harmbench 
+python run_attack_analysis.py logs-official-RP-RT1-political/gpt-4o/harmbench/comprehensive_log_global.json --output logs-official-RP-RT1-political/gpt-4o/harmbench/attack_analysis
+
+python analyze_comprehensive_logs.py logs-official-RP-User1-yoga/gpt-4o/harmbench 
+python run_attack_analysis.py logs-official-RP-User1-yoga/gpt-4o/harmbench/comprehensive_log_global.json --output logs-official-RP-User1-yoga/gpt-4o/harmbench/attack_analysis
+
+python analyze_comprehensive_logs.py logs-official-RP-User2-stay-at-home-mom/gpt-4o/harmbench
+python run_attack_analysis.py logs-official-RP-User2-stay-at-home-mom/gpt-4o/harmbench/comprehensive_log_global.json --output logs-official-RP-User2-stay-at-home-mom/gpt-4o/harmbench/attack_analysis
+
+
+python analyze_comprehensive_logs.py logs-official-RP-RT2-historical/gpt-4o/harmbench
+python run_attack_analysis.py logs-official-RP-RT2-historical/gpt-4o/harmbench/comprehensive_log_global.json --output logs-official-RP-RT2-historical/gpt-4o/harmbench/attack_analysis
+
+

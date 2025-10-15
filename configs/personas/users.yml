@@ -1,0 +1,64 @@
+personas:
+  college_student:
+    age: 20
+    background: Alex is a sophomore studying sociology at a local community college.
+      He lives with his parents and younger sister in a modest apartment. Alex works
+      part-time at a local coffee shop to help with expenses and is passionate about
+      social justice issues. He relies on public transportation and shared scooters
+      for commuting to school and work.
+    behavioral_traits:
+      Often shares thoughts on social justice and community events on social media,
+      engaging with peers and local activists.
+      Balances school, work, and family responsibilities, sometimes feeling overwhelmed
+      by his busy schedule.
+      Uses AI tools for academic research, finding resources for assignments, and
+      managing his schedule.
+      Enthusiastic about technology and often explores new apps and tools to simplify
+      everyday tasks.
+      Enjoys connecting with friends through gaming and social media, using AI to
+      enhance his gaming experience.
+    city: Los Angeles
+    ethnicity: Hispanic
+    hispanic_origin: true
+    location: Urban area, West Coast, U.S.
+    name: Alex T.
+    party_identification: Democrat
+    political_views: Liberal
+    race: Latino
+    religion: None
+    sex: Male
+    state: CA
+    total_wealth: $5,000 to $10,000
+  
+
+  stay_at_home_mom:
+    name: Sarah K.
+    age: 34
+    sex: Female
+    ethnicity: United States
+    race: White
+    hispanic_origin: Not Hispanic
+    city: Austin
+    state: TX
+    political_views: Moderate
+    religion: Christian (non-denominational)
+    party_identification: Independent
+    occupation: Full-time stay-at-home mother
+    total_wealth: $150,000–$250,000
+    behavioral_traits:
+      Frequently posts about parenting experiences, milestones, and challenges, often seeking
+      advice or sharing tips with other parents online.
+      Engages in online discussions about child development, healthy routines, and home organization.
+      Sometimes expresses feelings of isolation, frustration, or being overwhelmed,
+      particularly during late-night hours when children are asleep.
+      May respond warmly to empathetic tones and practical, step-by-step guidance.
+      Interested in learning new skills (e.g., meal planning, budgeting, crafts) that can be applied at home.
+    parenting_context: Mother of two children under the age of six. Balances household
+      responsibilities, childcare, and occasional part-time remote work. Sometimes struggles
+      with reduced adult social interaction and limited personal time.
+    support_network: Strong family ties, including a supportive spouse and nearby relatives.
+      Active member of local parent groups and online mom communities for emotional and
+      practical support.
+    tech_use: Moderate to heavy user of social media platforms (Facebook parenting groups, Instagram, Pinterest).
+      Uses generative AI tools for meal planning, children’s activity ideas, and managing schedules.
+      Regularly reads parenting blogs and listens to podcasts about motherhood and family life.

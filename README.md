@@ -1,0 +1,196 @@
+# 🤖🔄🧑 PersonaTeaming
+
+## 📋 Overview
+This repository contains the implementation of the methods described in our workshop paper **"[PersonaTeaming: Exploring How Introducing Personas Can Improve Automated AI Red-Teaming](https://arxiv.org/abs/2509.03728)"**
+based on the codebase from **"[RainbowPlus: Enhancing Adversarial Prompt Generation via Evolutionary Quality-Diversity Search](https://arxiv.org/abs/2504.15047)"**. 
+
+Prior work such as **RainbowTeaming** and **RainbowPlus** introduces algorithm to leverage evolutionary quality-diversity (QD) paradigm to mutate a set of seed prompts based on dimentions such as risk categories and attack style. While automated red-teaming approaches promise to complement human red-teaming by enabling larger-scale exploration of model behavior, current approaches do not consider the role of identity. 
+
+As an initial step towards incorporating people's background and identities in automated red-teaming, we develop and evaluate a novel method, **Personateaming**, that introduces personas in the adversarial prompt generation process to explore a wider spectrum of adversarial strategies.
+
+In particular, we first introduce a methodology for mutating prompts based on either "red-teaming expert" personas or "regular AI user" personas. We then develop a dynamic persona-generating algorithm that automatically generates various persona types adaptive to different seed prompts. In addition, we develop a set of new metrics to explicitly measure the "mutation distance" to complement existing diversity measurements of adversarial prompts.
+
+![Diagram](/assets/diagram.png)
+
+Throuh a preliminary experiment, we found promising improvements (up to 144.1\%) in the attack success rates of adversarial prompts through persona mutation, while maintaining prompt diversity, compared to **RainbowPlus**, a state-of-the-art automated red-teaming method. Please read our **"[Workshop Paper](https://arxiv.org/abs/2509.03728)"** for more detailed explaination!
+
+![Results](/assets/preliminary-result.png)
+
+## 📁 Repository Structure
+
+Note that this strucutre is an extension of RainbowPlus codebase https://github.com/knoveleng/rainbowplus
+
+```
+├── configs/                  # Configuration files
+│   ├── categories/           # Category definitions
+│   ├── styles/               # Style definitions
+│   ├── base.yml              # Base configuration
+│   ├── base-openai.yml       # Configuration to run LLMs from OpenAI
+│   ├── base-opensource.yml   # Configuration to run open-source LLMs
+│   └── eval.yml              # Evaluation configuration
+│
+├── data/                     # Dataset storage
+│
+├── rainbowplus/              # Core package
+│   ├── configs/              # Configuration utilities
+│   ├── llms/                 # LLM integration modules
+│   ├── scores/               # Fitness and similarity functions
+│   ├── mutators/             # Persona mutator functions
+│   ├── archive.py            # Archive management
+│   ├── evaluate.py           # Current evaluation implementation
+│   ├── evaluate_v0.py        # Evaluation implementation from old version
+│   ├── get_scores.py         # Metrics extraction utilities
+│   ├── prompts.py            # LLM prompt templates
+│   ├── rainbowplus.py        # Main implementation
+│   └── utils.py              # Utility functions
+│
+├── sh/                       # Shell scripts
+│   └── run.sh                # All-in-one execution script
+│
+├── README.md                 # This documentation
+└── setup.py                  # Package installation script
+```
+
+## 🚀 Getting Started
+
+### 1️⃣ Environment Setup
+
+Create and activate a Python virtual environment, then install the required dependencies:
+
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install -e .
+```
+
+### 2️⃣ API Configuration
+
+#### 🤗 Hugging Face Token (Optional)
+
+Required for accessing certain resources from the Hugging Face Hub (e.g., Llama Guard):
+
+```bash
+export HF_AUTH_TOKEN="YOUR_HF_TOKEN"
+```
+
+Alternatively:
+
+```bash
+huggingface-cli login --token=YOUR_HF_TOKEN
+```
+
+#### 🔑 OpenAI API Key
+
+Required when using OpenAI models:
+
+```bash
+export OPENAI_API_KEY="YOUR_API_KEY"
+```
+
+## 📊 Usage
+
+### 🧠 LLM Configuration
+
+Similar to RainbowPlus, PersonaTeaming currently supports two primary LLM integration methods:
+
+#### 1️⃣ vLLM (Open-Source Models)
+
+Example configuration for Qwen-2.5-7B-Instruct:
+
+```yaml
+target_llm:
+  type_: vllm
+
+  model_kwargs:
+    model: Qwen/Qwen2.5-7B-Instruct
+    trust_remote_code: True
+    max_model_len: 2048
+    gpu_memory_utilization: 0.5
+
+  sampling_params:
+    temperature: 0.6
+    top_p: 0.9
+    max_tokens: 1024
+```
+
+Additional parameters can be specified according to the [vLLM model documentation](https://docs.vllm.ai/en/latest/api/offline_inference/llm.html) and [sampling parameters documentation](https://docs.vllm.ai/en/latest/api/inference_params.html#sampling-parameters).
+
+#### 2️⃣ OpenAI API (Closed-Source Models)
+
+Example configuration for GPT-4o-mini:
+
+```yaml
+target_llm:
+  type_: openai
+
+  model_kwargs:
+    model: gpt-4o-mini
+
+  sampling_params:
+    temperature: 0.6
+    top_p: 0.9
+    max_tokens: 1024
+```
+
+Additional parameters can be specified according to the [OpenAI API documentation](https://platform.openai.com/docs/api-reference/chat/create).
+
+### 🧪 Running Experiments
+
+Basic execution with default configuration:
+
+```bash
+python -m rainbowplus.rainbowplus --config_file configs/{config-file-name}.yml
+```
+
+You should customized your experiment in the config file.
+
+All commands to reproduce our published results can be found in `commands.txt`
+
+#### ⚙️ Configuration Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `mutation_strategy` | Choose between "rainbowplus" "combined" and "combined-fit"|
+| `persona_config` | Persona config file path|
+| `persona_type` | Choose between "RegularAIUsers" and "RedTeamingExperts"|
+| `target_llm` | Target LLM identifier |
+| `num_samples` | Number of initial seed prompts |
+| `max_iters` | Maximum number of iteration steps |
+| `sim_threshold` | Similarity threshold for prompt mutation |
+| `num_mutations` | Number of prompt mutations per iteration |
+| `fitness_threshold` | Minimum fitness score to add prompt to archive |
+| `log_dir` | Directory for storing logs |
+| `dataset` | Dataset path |
+| `shuffle` | Whether to shuffle seed prompts |
+| `log_interval` | Number of iterations between log saves |
+
+
+## 📊 Evaluation
+
+After running experiments, evaluate the results:
+
+```bash
+
+# Calculating ASR and BLEU-based Diversity Score
+python analyze_comprehensive_logs.py logs-{experiment-name}/gpt-4o/harmbench  
+
+# Calculating attack embedding based diversity score, TF-IDF analysis, and corresponding visualizations
+python run_attack_analysis.py logs-{experiment-name}/gpt-4o/harmbench/comprehensive_log_global.json --output logs-{experiment-name}/gpt-4o/harmbench/attack_analysis
+
+```
+
+### Evaluation Metrics
+
+For metrics used in our current preliminary evaluation, please refer to section 3.1 Metrics in our **"[Workshop Paper](https://arxiv.org/abs/2509.03728)"**！
+
+## 📝 Citation
+
+```
+@article{deng2025personateaming,
+  title={PersonaTeaming: Exploring How Introducing Personas Can Improve Automated AI Red-Teaming},
+  author={Deng, Wesley Hanwen and Kim, Sunnie SY and Jha, Akshita and Holstein, Ken and Eslami, Motahhare and Wilcox, Lauren and Gatys, Leon A},
+  journal={arXiv preprint arXiv:2509.03728},
+  year={2025}
+}
+```
+
