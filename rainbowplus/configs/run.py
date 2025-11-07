@@ -5,6 +5,8 @@
 #
 
 import yaml
+import os
+from dotenv import load_dotenv
 
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -12,6 +14,9 @@ from typing import Dict, Any, Optional
 from yaml.parser import ParserError
 
 from rainbowplus.configs.base import LLMConfig
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 @dataclass
@@ -92,4 +97,17 @@ class ConfigurationLoader:
         """Parse LLM configuration from YAML data."""
         if not isinstance(data, dict):
             return None
+
+        # If api_key is not set in config, try to get it from environment
+        if 'api_key' not in data or data['api_key'] is None:
+            # Check if base_url indicates Together AI
+            base_url = data.get('base_url', '')
+            if 'together' in base_url.lower():
+                # Use TOGETHER_API_KEY for Together AI
+                data['api_key'] = os.getenv('TOGETHER_API_KEY')
+            else:
+                # Use OPENAI_API_KEY for OpenAI
+                data['api_key'] = os.getenv('OPENAI_API_KEY')
+
         return LLMConfig(**data)
+
