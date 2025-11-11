@@ -37,6 +37,8 @@ Requires-Dist: transformers<4.54.0
 Requires-Dist: matplotlib>=3.5.0
 Requires-Dist: seaborn>=0.11.0
 Requires-Dist: lexicalrichness>=0.3.0
+Requires-Dist: wordcloud>=1.8.2
+Requires-Dist: python-dotenv>=0.19.0
 Provides-Extra: dev
 Requires-Dist: pytest>=7.0.0; extra == "dev"
 Requires-Dist: black>=23.0.0; extra == "dev"
@@ -57,34 +59,27 @@ Dynamic: requires-dist
 Dynamic: requires-python
 Dynamic: summary
 
-# PersonaTeaming
+# 🤖🔄🧑 PersonaTeaming
 
 ## 📋 Overview
-This repository contains the implementation of the methods described in our research paper **"[PersonaTeaming: Exploring How Introducing Personas Can Improve Automated AI Red-Teaming](https://arxiv.org/abs/2509.03728)"**
+This repository contains the implementation of the methods described in our workshop paper **"[PersonaTeaming: Exploring How Introducing Personas Can Improve Automated AI Red-Teaming](https://arxiv.org/abs/2509.03728)"**
+based on the codebase from **"[RainbowPlus: Enhancing Adversarial Prompt Generation via Evolutionary Quality-Diversity Search](https://arxiv.org/abs/2504.15047)"**. 
 
+Prior work such as **RainbowTeaming** and **RainbowPlus** introduces algorithm to leverage evolutionary quality-diversity (QD) paradigm to mutate a set of seed prompts based on dimentions such as risk categories and attack style. While automated red-teaming approaches promise to complement human red-teaming by enabling larger-scale exploration of model behavior, current approaches do not consider the role of identity. 
 
-based on the codebase from **"[RainbowPlus: Enhancing Adversarial Prompt Generation via Evolutionary Quality-Diversity Search](https://arxiv.org/abs/2504.15047)"**. Building upon the foundational insights of Rainbow Teaming and the MAP-Elites algorithm, **RainbowPlus** introduces key enhancements to the evolutionary quality-diversity (QD) paradigm. 
+As an initial step towards incorporating people's background and identities in automated red-teaming, we develop and evaluate a novel method, **Personateaming**, that introduces personas in the adversarial prompt generation process to explore a wider spectrum of adversarial strategies.
 
-In particular, building on 
-
-Specifically, **RainbowPlus** reimagines the archive as a dynamic, multi-individual container that stores diverse high-fitness prompts per cell, analogous to maintaining a population of elite solutions across behavioral niches. This enriched archive enables a broader evolutionary exploration of adversarial strategies. 
-
-Furthermore, **RainbowPlus** employs a comprehensive fitness function that evaluates multiple candidate prompts in parallel using a probabilistic scoring mechanism, replacing traditional pairwise comparisons and enhancing both accuracy and computational efficiency. By integrating these evolutionary principles into its adaptive QD search, **RainbowPlus** achieves superior attack efficacy and prompt diversity, outperforming both QD-based methods and state-of-the-art red-teaming approaches.
+In particular, we first introduce a methodology for mutating prompts based on either "red-teaming expert" personas or "regular AI user" personas. We then develop a dynamic persona-generating algorithm that automatically generates various persona types adaptive to different seed prompts. In addition, we develop a set of new metrics to explicitly measure the "mutation distance" to complement existing diversity measurements of adversarial prompts.
 
 ![Diagram](/assets/diagram.png)
 
-## ✨ Key Features
+Throuh a preliminary experiment, we found promising improvements (up to 144.1\%) in the attack success rates of adversarial prompts through persona mutation, while maintaining prompt diversity, compared to **RainbowPlus**, a state-of-the-art automated red-teaming method. Please read our **"[Workshop Paper](https://arxiv.org/abs/2509.03728)"** for more detailed explaination!
 
-- 🏆 **State-of-the-Art Performance**: Achieves superior results compared to existing methods on HarmBench benchmark
-- 🔄 **Universal Compatibility**: Supports both open-source and closed-source LLMs (OpenAI, vLLM)
-- ⚡ **Computational Efficiency**: Completes an evaluation in just 1.45 hours on HarmBench
-- 🛠️ **Flexible Configuration**: Highly customizable for various experimental settings
-
-*RainbowPlus* achieves state-of-the-art results compared to other red-teaming methods.
-
-![Results](/assets/results-sota.png)
+![Results](/assets/preliminary-result.png)
 
 ## 📁 Repository Structure
+
+Note that this strucutre is an extension of RainbowPlus codebase https://github.com/knoveleng/rainbowplus
 
 ```
 ├── configs/                  # Configuration files
@@ -101,6 +96,7 @@ Furthermore, **RainbowPlus** employs a comprehensive fitness function that evalu
 │   ├── configs/              # Configuration utilities
 │   ├── llms/                 # LLM integration modules
 │   ├── scores/               # Fitness and similarity functions
+│   ├── mutators/             # Persona mutator functions
 │   ├── archive.py            # Archive management
 │   ├── evaluate.py           # Current evaluation implementation
 │   ├── evaluate_v0.py        # Evaluation implementation from old version
@@ -144,7 +140,7 @@ Alternatively:
 huggingface-cli login --token=YOUR_HF_TOKEN
 ```
 
-#### 🔑 OpenAI API Key (Optional)
+#### 🔑 OpenAI API Key
 
 Required when using OpenAI models:
 
@@ -156,7 +152,7 @@ export OPENAI_API_KEY="YOUR_API_KEY"
 
 ### 🧠 LLM Configuration
 
-RainbowPlus supports two primary LLM integration methods:
+Similar to RainbowPlus, PersonaTeaming currently supports two primary LLM integration methods:
 
 #### 1️⃣ vLLM (Open-Source Models)
 
@@ -204,40 +200,20 @@ Additional parameters can be specified according to the [OpenAI API documentatio
 Basic execution with default configuration:
 
 ```bash
-python -m rainbowplus.rainbowplus \
-    --config_file configs/base.yml \
-    --num_samples 150 \
-    --max_iters 400 \
-    --sim_threshold 0.6 \
-    --num_mutations 10 \
-    --fitness_threshold 0.6 \
-    --log_dir logs-sota \
-    --dataset ./data/harmbench.json \
-    --log_interval 50 \
-    --shuffle True
+python -m rainbowplus.rainbowplus --config_file configs/{config-file-name}.yml
 ```
 
-For customized experiments, you can override target LLM and specific parameters:
+You should customized your experiment in the config file.
 
-```bash
-python -m rainbowplus.rainbowplus \
-    --config_file configs/base-opensource.yml \
-    --num_samples -1 \
-    --max_iters 400 \
-    --sim_threshold 0.6 \
-    --num_mutations 10 \
-    --fitness_threshold 0.6 \
-    --log_dir logs-sota \
-    --dataset ./data/harmbench.json \
-    --target_llm "TARGET MODEL" \
-    --log_interval 50 \
-    --shuffle True
-```
+All commands to reproduce our published results can be found in `commands.txt`
 
 #### ⚙️ Configuration Parameters
 
 | Parameter | Description |
 |-----------|-------------|
+| `mutation_strategy` | Choose between "rainbowplus" "combined" and "combined-fit"|
+| `persona_config` | Persona config file path|
+| `persona_type` | Choose between "RegularAIUsers" and "RedTeamingExperts"|
 | `target_llm` | Target LLM identifier |
 | `num_samples` | Number of initial seed prompts |
 | `max_iters` | Maximum number of iteration steps |
@@ -249,86 +225,33 @@ python -m rainbowplus.rainbowplus \
 | `shuffle` | Whether to shuffle seed prompts |
 | `log_interval` | Number of iterations between log saves |
 
-### 🔄 Batch Processing Multiple Models
-
-For evaluating multiple models sequentially:
-
-```bash
-MODEL_IDS="meta-llama/Llama-2-7b-chat-hf lmsys/vicuna-7b-v1.5 baichuan-inc/Baichuan2-7B-Chat Qwen/Qwen-7B-Chat"
-
-for MODEL in $MODEL_IDS; do
-    python -m rainbowplus.rainbowplus \
-        --config_file configs/base-opensource.yml \
-        --num_samples -1 \
-        --max_iters 400 \
-        --sim_threshold 0.6 \
-        --num_mutations 10 \
-        --fitness_threshold 0.6 \
-        --log_dir logs-sota \
-        --dataset ./data/harmbench.json \
-        --target_llm $MODEL \
-        --log_interval 50 \
-        --shuffle True
-
-    # Clean cache between model runs
-    rm -r ~/.cache/huggingface/hub/
-done
-```
 
 ## 📊 Evaluation
 
 After running experiments, evaluate the results:
 
 ```bash
-MODEL_IDS="meta-llama/Llama-2-7b-chat-hf"  # For multiple models: MODEL_IDS="meta-llama/Llama-2-7b-chat-hf lmsys/vicuna-7b-v1.5"
 
-for MODEL in $MODEL_IDS; do
-    # Run evaluation
-    python -m rainbowplus.evaluate \
-        --config configs/eval.yml \
-        --log_dir "./logs-sota/$MODEL/harmbench"
+# Calculating ASR and BLEU-based Diversity Score
+python analyze_comprehensive_logs.py logs-{experiment-name}/gpt-4o/harmbench  
 
-    # Extract metrics
-    python rainbowplus/get_scores.py \
-        --log_dir "./logs-sota/$MODEL/harmbench" \
-        --keyword "global"
-done
+# Calculating attack embedding based diversity score, TF-IDF analysis, and corresponding visualizations
+python run_attack_analysis.py logs-{experiment-name}/gpt-4o/harmbench/comprehensive_log_global.json --output logs-{experiment-name}/gpt-4o/harmbench/attack_analysis
+
 ```
 
-### Evaluation Parameters
+### Evaluation Metrics
 
-| Parameter | Description |
-|-----------|-------------|
-| `config` | Path to configuration file |
-| `log_dir` | Directory containing experiment logs |
-| `keyword` | Keyword for global config file name (default: `global`), you can ignore this param |
-
-### 📉 Output Metrics
-
-Results are saved in JSON format:
-
-```json
-{
-    "General": 0.79,
-    "All": 0.8666092943201377
-}
-```
-
-Where:
-- `General`: Metrics calculated following standard methods
-- `All`: Metrics calculated across all generated prompts
+For metrics used in our current preliminary evaluation, please refer to section 3.1 Metrics in our **"[Workshop Paper](https://arxiv.org/abs/2509.03728)"**！
 
 ## 📝 Citation
 
 ```
-@misc{dang2025rainbowplusenhancingadversarialprompt,
-      title={RainbowPlus: Enhancing Adversarial Prompt Generation via Evolutionary Quality-Diversity Search}, 
-      author={Quy-Anh Dang and Chris Ngo and Truong-Son Hy},
-      year={2025},
-      eprint={2504.15047},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL},
-      url={https://arxiv.org/abs/2504.15047}, 
+@article{deng2025personateaming,
+  title={PersonaTeaming: Exploring How Introducing Personas Can Improve Automated AI Red-Teaming},
+  author={Deng, Wesley Hanwen and Kim, Sunnie SY and Jha, Akshita and Holstein, Ken and Eslami, Motahhare and Wilcox, Lauren and Gatys, Leon A},
+  journal={arXiv preprint arXiv:2509.03728},
+  year={2025}
 }
 ```
 

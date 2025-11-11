@@ -1,0 +1,83 @@
+########## CONFIGURATION ##########
+# Alternative config using Qwen via API (Together AI)
+# Use this if you don't have a GPU available for local vLLM inference
+
+# Archive Configuration - RP+RTer1 (Rainbow Plus + Red Teaming Expert 1)
+# Include restricted personas
+archive:
+  path: 
+    - ./configs/categories/categories.txt
+    - ./configs/styles/styles.txt
+    - ./configs/personas/detailed.yml
+  descriptor:
+    - Category
+    - Style
+    - Persona
+  selected_personas:
+    - historical_revisionist
+
+# Seed dataset
+sample_prompts: ./data/harmbench.json
+
+# Log directory
+log_dir: ./logs-qwen-RP-RTer1
+
+
+# Target LLM Configuration - Using Qwen via Together AI API
+target_llm:
+  type_: openai  # Together AI uses OpenAI-compatible API
+  base_url: https://api.together.xyz/v1  # Together AI endpoint
+  # api_key will be automatically loaded from TOGETHER_API_KEY in .env file
+
+  model_kwargs:
+    model: Qwen/Qwen2.5-7B-Instruct-Turbo  # Qwen model via Together AI
+
+  sampling_params:
+    temperature: 0.7
+    top_p: 0.9
+    max_tokens: 1024
+
+
+# Mutator LLM Configuration - Using GPT-4o via OpenAI API
+mutator_llm:
+  type_: openai
+  # api_key will be automatically loaded from OPENAI_API_KEY in .env file
+
+  model_kwargs:
+    model: gpt-4o
+
+  sampling_params:
+    temperature: 0.7
+    top_p: 0.9
+    max_tokens: 128
+
+
+# Fitness LLM Configuration - Using GPT-4o via OpenAI API
+fitness_llm:
+  type_: openai
+  # api_key will be automatically loaded from OPENAI_API_KEY in .env file
+
+  model_kwargs:
+    model: gpt-4o
+
+  sampling_params:
+    temperature: 0.7
+    top_p: 0.9
+    max_tokens: 16
+
+
+########## ALGORITHM PARAMETERS ##########
+
+# Evolution parameters - RP+RTer1 configuration (200 samples × 10 iterations)
+sample_prompts: ./data/harmbench.json
+num_samples: 150
+max_iters: 200
+sim_threshold: 0.6
+num_mutations: 10
+fitness_threshold: 0.6
+log_interval: 50
+shuffle: true
+
+# Mutation strategy - Combined (Rainbow Plus + Personas)
+mutation_strategy: combined
+persona_config: configs/personas/detailed.yml

@@ -48,6 +48,7 @@ REQUIRED_PACKAGES = [
     "seaborn>=0.11.0",
     "lexicalrichness>=0.3.0",
     "wordcloud>=1.8.2",
+    "python-dotenv>=0.19.0",
 ]
 
 # Define development dependencies

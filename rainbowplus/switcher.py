@@ -5,8 +5,14 @@
 #
 
 from typing import Any, Dict, List
-from rainbowplus.llms.vllm import vLLM
 from rainbowplus.llms.openai import LLMviaOpenAI
+
+# Try to import vllm (optional for API-only setups)
+try:
+    from rainbowplus.llms.vllm import vLLM
+    VLLM_AVAILABLE = True
+except ImportError:
+    VLLM_AVAILABLE = False
 
 
 class LLMSwitcher:
@@ -35,6 +41,10 @@ class LLMSwitcher:
             ValueError: If an unsupported LLM type is specified
         """
         if self._type == "vllm":
+            if not VLLM_AVAILABLE:
+                raise ValueError(
+                    "vLLM is not installed. To use vLLM models, install it with: pip install vllm"
+                )
             return vLLM(self.model_kwargs)
         elif self._type == "openai":
             return LLMviaOpenAI(self.config)

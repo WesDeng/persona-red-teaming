@@ -6,5 +6,12 @@
 
 from rainbowplus.scores.base import *
 from rainbowplus.scores.bleu import *
-from rainbowplus.scores.llama_guard import *
+
+# Try to import vllm-based modules (optional for API-only setups)
+try:
+    from rainbowplus.scores.llama_guard import *
+except ImportError:
+    # vllm not installed, skip LlamaGuard
+    pass
+
 from rainbowplus.scores.openai_guard import *
