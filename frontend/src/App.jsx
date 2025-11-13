@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 
 const INITIAL_PERSONA = `name: Kimi W.
@@ -29,6 +29,9 @@ function App() {
   const [persona, setPersona] = useState(INITIAL_PERSONA)
   const [numSeedPrompts, setNumSeedPrompts] = useState(5)
   const [numMutations, setNumMutations] = useState(3)
+  const [seedMode, setSeedMode] = useState('random') // 'random' or 'preselected'
+  const [preselectedSeeds, setPreselectedSeeds] = useState([])
+  const [selectedSeeds, setSelectedSeeds] = useState([]) // User-selected seeds
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState(null)
   const [error, setError] = useState(null)
@@ -36,17 +39,54 @@ function App() {
   const [editedPromptText, setEditedPromptText] = useState('')
   const [reattacking, setReattacking] = useState(null) // {resultIdx, promptIdx}
 
+  // Fetch preselected seeds when mode changes
+  useEffect(() => {
+    if (seedMode === 'preselected' && preselectedSeeds.length === 0) {
+      axios.get(`${API_BASE_URL}/api/preselected-seeds`)
+        .then(response => {
+          setPreselectedSeeds(response.data.seeds)
+        })
+        .catch(err => {
+          console.error('Failed to fetch preselected seeds:', err)
+        })
+    }
+  }, [seedMode, preselectedSeeds.length])
+
+  const handleSeedToggle = (seed) => {
+    setSelectedSeeds(prev => {
+      if (prev.includes(seed)) {
+        return prev.filter(s => s !== seed)
+      } else {
+        return [...prev, seed]
+      }
+    })
+  }
+
   const handleGenerate = async () => {
+    // Validation for preselected mode
+    if (seedMode === 'preselected' && selectedSeeds.length === 0) {
+      setError('Please select at least one seed prompt')
+      return
+    }
+
     setLoading(true)
     setError(null)
     setResults(null)
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/generate`, {
+      const requestData = {
         persona: persona,
         num_seed_prompts: numSeedPrompts,
-        num_mutations_per_seed: numMutations
-      })
+        num_mutations_per_seed: numMutations,
+        seed_mode: seedMode
+      }
+
+      // Add selected seeds for preselected mode
+      if (seedMode === 'preselected') {
+        requestData.selected_seeds = selectedSeeds
+      }
+
+      const response = await axios.post(`${API_BASE_URL}/api/generate`, requestData)
 
       setResults(response.data.results)
     } catch (err) {
@@ -111,15 +151,28 @@ function App() {
 
         <div className="controls">
           <label>
-            Seed Prompts:
-            <input
-              type="number"
-              value={numSeedPrompts}
-              onChange={(e) => setNumSeedPrompts(parseInt(e.target.value) || 1)}
-              min="1"
-              max="20"
-            />
+            Seed Mode:
+            <select
+              value={seedMode}
+              onChange={(e) => setSeedMode(e.target.value)}
+            >
+              <option value="random">Random Seeds</option>
+              <option value="preselected">Preselected Good Seeds</option>
+            </select>
           </label>
+
+          {seedMode === 'random' && (
+            <label>
+              Seed Prompts:
+              <input
+                type="number"
+                value={numSeedPrompts}
+                onChange={(e) => setNumSeedPrompts(parseInt(e.target.value) || 1)}
+                min="1"
+                max="20"
+              />
+            </label>
+          )}
 
           <label>
             Mutations per Seed:
@@ -140,6 +193,27 @@ function App() {
             {loading ? 'Generating...' : 'Generate'}
           </button>
         </div>
+
+        {seedMode === 'preselected' && (
+          <div className="seed-selection">
+            <h3>Select Seed Prompts to Test:</h3>
+            {preselectedSeeds.map((seed, index) => (
+              <label key={index} className="seed-checkbox">
+                <input
+                  type="checkbox"
+                  checked={selectedSeeds.includes(seed)}
+                  onChange={() => handleSeedToggle(seed)}
+                />
+                <span className="seed-text">{seed}</span>
+              </label>
+            ))}
+            {preselectedSeeds.length > 0 && (
+              <div className="seed-selection-info">
+                {selectedSeeds.length} of {preselectedSeeds.length} selected
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {error && (
