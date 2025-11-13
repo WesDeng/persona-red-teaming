@@ -53,3 +53,9 @@ Thumbs.db
 
 # Model cache
 .cache/
+
+# Node.js / React
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
