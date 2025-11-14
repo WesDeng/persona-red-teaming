@@ -25,6 +25,16 @@ if ! python -c "import fastapi" 2>/dev/null; then
     pip install -r requirements.txt
 fi
 
+# Check for Node.js/npm
+if ! command -v npm &> /dev/null; then
+    echo "ERROR: npm is not installed!"
+    echo "Please install Node.js and npm to run the frontend."
+    echo "On macOS, you can install it using:"
+    echo "  brew install node"
+    echo "Or download from: https://nodejs.org/"
+    exit 1
+fi
+
 # Check for Node dependencies
 if [ ! -d "frontend/node_modules" ]; then
     echo "⚠ Node modules not found. Installing frontend dependencies..."
@@ -48,6 +58,10 @@ BACKEND_PID=$!
 sleep 3
 
 # Start frontend in background
+if ! command -v npm &> /dev/null; then
+    echo "ERROR: npm is not available. Cannot start frontend."
+    exit 1
+fi
 cd frontend && npm run dev &
 FRONTEND_PID=$!
 cd ..

@@ -45,12 +45,106 @@ code {
   border-radius: 8px;
   margin-bottom: 20px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+.persona-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .persona-section h2 {
   margin-bottom: 15px;
   color: #2c3e50;
   font-size: 18px;
+}
+
+.instruction-btn {
+  background-color: #f39c12;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.instruction-btn:hover {
+  background-color: #d68910;
+  transform: translateY(-1px);
+}
+
+.instruction-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0,0,0,0.45);
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding: 40px;
+  z-index: 1000;
+}
+
+.instruction-modal {
+  background: white;
+  width: 360px;
+  max-width: 90vw;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  padding: 20px;
+  animation: slideIn 0.25s ease-out;
+}
+
+.instruction-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.instruction-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #2c3e50;
+}
+
+.close-instruction-btn {
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  color: #7f8c8d;
+}
+
+.close-instruction-btn:hover {
+  color: #2c3e50;
+}
+
+.instruction-list {
+  margin-top: 10px;
+  padding-left: 18px;
+  color: #2c3e50;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.instruction-list li {
+  margin-bottom: 8px;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .persona-textarea {

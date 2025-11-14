@@ -38,6 +38,17 @@ function App() {
   const [editingPrompt, setEditingPrompt] = useState(null) // {resultIdx, promptIdx}
   const [editedPromptText, setEditedPromptText] = useState('')
   const [reattacking, setReattacking] = useState(null) // {resultIdx, promptIdx}
+  const [showInstructions, setShowInstructions] = useState(false)
+
+  const personaInstructions = [
+    'We are not storing any of your data. All the data is processed locally in your browser.',
+    'Highlight your unique characteristics to make your persona unique!',
+    'Provide concrete behavioral traits using lists for clarity.',
+    'Keep descriptions concise; aim for 3-5 sentences per section.',
+    'You can iteratively edit and re-attack the prompts to find the most effective adversarial prompts.',
+    'You can also generate random prompts to get a sense of the diversity of the prompts.',
+    "You can also directly edit the adversarial prompts to make them more effective!"
+  ]
 
   // Fetch preselected seeds when mode changes
   useEffect(() => {
@@ -136,12 +147,20 @@ function App() {
   return (
     <div className="app">
       <div className="header">
-        <h1>Persona-based Prompt Generation Interface</h1>
-        <p>Iterative Red-Teaming Tool</p>
+        <h1>PersonaTeaming Interactive Interface</h1>
+        <p>This is an interactive interface where you can draft and improve your own persona to generate adversarial prompts. <br /> You can also iteratively edit and re-attack the prompts to find the most effective adversarial prompts.</p>
       </div>
 
       <div className="persona-section">
-        <h2>User Persona</h2>
+        <div className="persona-header">
+          <h2>User Persona</h2>
+          <button
+            className="instruction-btn"
+            onClick={() => setShowInstructions(true)}
+          >
+            Tips and Instructions
+          </button>
+        </div>
         <textarea
           className="persona-textarea"
           value={persona}
@@ -151,13 +170,13 @@ function App() {
 
         <div className="controls">
           <label>
-            Seed Mode:
+            Seed Mode: 
             <select
               value={seedMode}
               onChange={(e) => setSeedMode(e.target.value)}
             >
-              <option value="random">Random Seeds</option>
-              <option value="preselected">Preselected Good Seeds</option>
+              <option value="random">Random Prompts</option>
+              <option value="preselected">Preselected Prompts</option>
             </select>
           </label>
 
@@ -305,6 +324,35 @@ function App() {
               ))}
             </div>
           ))}
+        </div>
+      )}
+
+      {showInstructions && (
+        <div
+          className="instruction-overlay"
+          onClick={() => setShowInstructions(false)}
+        >
+          <div
+            className="instruction-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="instruction-modal-header">
+              <h3>Persona Writing Tips and Interface Instructions</h3>
+              <button
+                className="close-instruction-btn"
+                onClick={() => setShowInstructions(false)}
+                aria-label="Close instructions"
+              >
+                ×
+              </button>
+            </div>
+            <p>Use these guidelines to craft richer personas and use the interface effectively:</p>
+            <ul className="instruction-list">
+              {personaInstructions.map((tip, index) => (
+                <li key={index}>{tip}</li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
     </div>
