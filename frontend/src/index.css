@@ -164,6 +164,68 @@ code {
   border-color: #3498db;
 }
 
+.emphasis-section {
+  margin-top: 20px;
+}
+
+.emphasis-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+  transition: background-color 0.2s;
+}
+
+.emphasis-header:hover {
+  background-color: #e9ecef;
+}
+
+.emphasis-label {
+  flex: 1;
+  margin: 0;
+  color: #2c3e50;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+
+.emphasis-chevron {
+  color: #7f8c8d;
+  font-size: 12px;
+  transition: transform 0.2s;
+  margin-left: 10px;
+  flex-shrink: 0;
+}
+
+.emphasis-chevron.expanded {
+  transform: rotate(180deg);
+}
+
+.emphasis-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  margin-top: 10px;
+}
+
+.emphasis-textarea:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
 .controls {
   display: flex;
   gap: 10px;
@@ -272,6 +334,27 @@ code {
 
 .generate-btn:disabled {
   background-color: #95a5a6;
+  cursor: not-allowed;
+}
+
+.template-btn {
+  background-color: #95a5a6;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.template-btn:hover:not(:disabled) {
+  background-color: #7f8c8d;
+}
+
+.template-btn:disabled {
+  background-color: #bdc3c7;
   cursor: not-allowed;
 }
 

@@ -1,32 +1,31 @@
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 
-const INITIAL_PERSONA = `name: Kimi W.
-age: 27
-sex: Female
-ethnicity: Japanese
-race: Asian
-hispanic_origin: Not Hispanic
-city: Pittsburgh
-state: PA
-political_views: Liberal
-religion: None
-party_identification: Democrat
-total_wealth: $20,000 to $40,000
-background: Certified yoga teacher with a background in computer science, psychology, and wellness coaching.
-location: Urban area, East Coast, U.S.
+const INITIAL_PERSONA = `name: [name]
+age: [age]
+sex: [sex]
+ethnicity: [ethnicity]
+race: [race]
+hispanic_origin: [hispanic_origin]
+city: [city]
+state: [state]
+political_views: [political_views]
+religion: [religion]
+party_identification: [party_identification]
+total_wealth: [total_wealth]
+background: [background]
+location: [location]
 behavioral_traits:
-  - Calm, patient, and empathetic communicator
-  - Frequently references mindfulness, balance, and holistic well-being
-  - Advocates for natural remedies and alternative medicine
-  - Enjoys sharing motivational quotes and wellness tips
-  - May be skeptical of mainstream medicine and technology
-tech_use: Use her PC on daily bases for work. Active on Instagram, shares yoga routines and wellness content. Uses AI for class planning and health research.`
+  - [behavioral_trait_1]
+  - [behavioral_trait_2]
+  - [behavioral_trait_3]
+tech_use: [tech_use]`
 
 const API_BASE_URL = 'http://localhost:8000'
 
 function App() {
-  const [persona, setPersona] = useState(INITIAL_PERSONA)
+  const [persona, setPersona] = useState('')
+  const [emphasisInstructions, setEmphasisInstructions] = useState('')
   const [numSeedPrompts, setNumSeedPrompts] = useState(5)
   const [numMutations, setNumMutations] = useState(3)
   const [seedMode, setSeedMode] = useState('random') // 'random' or 'preselected'
@@ -39,6 +38,7 @@ function App() {
   const [editedPromptText, setEditedPromptText] = useState('')
   const [reattacking, setReattacking] = useState(null) // {resultIdx, promptIdx}
   const [showInstructions, setShowInstructions] = useState(false)
+  const [emphasisExpanded, setEmphasisExpanded] = useState(false)
 
   const personaInstructions = [
     'We are not storing any of your data. All the data is processed locally in your browser.',
@@ -73,6 +73,10 @@ function App() {
     })
   }
 
+  const handleApplyTemplate = () => {
+    setPersona(INITIAL_PERSONA)
+  }
+
   const handleGenerate = async () => {
     // Validation for preselected mode
     if (seedMode === 'preselected' && selectedSeeds.length === 0) {
@@ -87,6 +91,7 @@ function App() {
     try {
       const requestData = {
         persona: persona,
+        emphasis_instructions: emphasisInstructions,
         num_seed_prompts: numSeedPrompts,
         num_mutations_per_seed: numMutations,
         seed_mode: seedMode
@@ -165,8 +170,30 @@ function App() {
           className="persona-textarea"
           value={persona}
           onChange={(e) => setPersona(e.target.value)}
-          placeholder="Enter persona details in YAML format..."
+          placeholder="write your persona here"
         />
+
+        <div className="emphasis-section">
+          <div 
+            className="emphasis-header"
+            onClick={() => setEmphasisExpanded(!emphasisExpanded)}
+          >
+            <label className="emphasis-label">
+              [Optional] Instructions on which part of your persona to emphasize on in the adversarial prompts:
+            </label>
+            <span className={`emphasis-chevron ${emphasisExpanded ? 'expanded' : ''}`}>
+              ▼
+            </span>
+          </div>
+          {emphasisExpanded && (
+            <textarea
+              className="emphasis-textarea"
+              value={emphasisInstructions}
+              onChange={(e) => setEmphasisInstructions(e.target.value)}
+              placeholder="e.g., Focus on your tech use patterns, emphasize your political views..."
+            />
+          )}
+        </div>
 
         <div className="controls">
           <label>
@@ -205,12 +232,21 @@ function App() {
           </label>
 
           <button
+            className="template-btn"
+            onClick={handleApplyTemplate}
+            disabled={loading}
+          >
+            Apply Persona Template
+          </button>
+
+          <button
             className="generate-btn"
             onClick={handleGenerate}
             disabled={loading}
           >
-            {loading ? 'Generating...' : 'Generate'}
+            {loading ? 'Generating...' : 'Generate Adversarial Prompts'}
           </button>
+          
         </div>
 
         {seedMode === 'preselected' && (
