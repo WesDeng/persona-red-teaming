@@ -37,7 +37,10 @@ cd frontend && npm install && cd ..
 # 2. Set up your OpenAI API key
 echo "OPENAI_API_KEY=your_key_here" > .env
 
-# 3. Start the UI (both backend and frontend)
+# 3. Start the virtual environment
+source venv/bin/activate
+
+# 4. Start the UI (both backend and frontend)
 ./start_all.sh
 ```
 
