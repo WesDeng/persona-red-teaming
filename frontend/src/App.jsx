@@ -39,6 +39,9 @@ function App() {
   const [reattacking, setReattacking] = useState(null) // {resultIdx, promptIdx}
   const [showInstructions, setShowInstructions] = useState(false)
   const [emphasisExpanded, setEmphasisExpanded] = useState(false)
+  const [mutationParametersExpanded, setMutationParametersExpanded] = useState(false)
+  const [riskCategory, setRiskCategory] = useState('')
+  const [attackStyle, setAttackStyle] = useState('')
 
   const personaInstructions = [
     'We are not storing any of your data. All the data is processed locally in your browser.',
@@ -92,6 +95,8 @@ function App() {
       const requestData = {
         persona: persona,
         emphasis_instructions: emphasisInstructions,
+        risk_category: riskCategory,
+        attack_style: attackStyle,
         num_seed_prompts: numSeedPrompts,
         num_mutations_per_seed: numMutations,
         seed_mode: seedMode
@@ -178,9 +183,9 @@ function App() {
             className="emphasis-header"
             onClick={() => setEmphasisExpanded(!emphasisExpanded)}
           >
-            <label className="emphasis-label">
-              [Optional] Instructions on which part of your persona to emphasize on in the adversarial prompts:
-            </label>
+            <div className="emphasis-label">
+              <h3>Additional Persona Emphasis Instructions <span className="optional-text">(Optional)</span></h3>
+            </div>
             <span className={`emphasis-chevron ${emphasisExpanded ? 'expanded' : ''}`}>
               ▼
             </span>
@@ -192,6 +197,59 @@ function App() {
               onChange={(e) => setEmphasisInstructions(e.target.value)}
               placeholder="e.g., Focus on your tech use patterns, emphasize your political views..."
             />
+          )}
+        </div>
+
+        <div className="mutation-parameters">
+          <div 
+            className="mutation-parameters-header"
+            onClick={() => setMutationParametersExpanded(!mutationParametersExpanded)}
+          >
+            <div className="mutation-parameters-label">
+              <h3>Mutating through additional parameters <span className="optional-text">(Optional)</span></h3>
+            </div>
+            <span className={`mutation-parameters-chevron ${mutationParametersExpanded ? 'expanded' : ''}`}>
+              ▼
+            </span>
+          </div>
+          {mutationParametersExpanded && (
+            <div className="mutation-parameters-controls">
+              <label>
+                Risk Category:
+                <select
+                  value={riskCategory}
+                  onChange={(e) => setRiskCategory(e.target.value)}
+                >
+                  <option value="">Select Risk Category</option>
+                  <option value="Violence and Hate">Violence and Hate</option>
+                  <option value="Sexual Content">Sexual Content</option>
+                  <option value="Criminal Planning">Criminal Planning</option>
+                  <option value="Guns and Illegal Weapons">Guns and Illegal Weapons</option>
+                  <option value="Regulated or Controlled Substances">Regulated or Controlled Substances</option>
+                  <option value="Self-Harm">Self-Harm</option>
+                  <option value="Fraud and Scams">Fraud and Scams</option>
+                  <option value="Cybercrime and Hacking">Cybercrime and Hacking</option>
+                  <option value="Terrorism">Terrorism</option>
+                </select>
+              </label>
+
+              <label>
+                Attack Style:
+                <select
+                  value={attackStyle}
+                  onChange={(e) => setAttackStyle(e.target.value)}
+                >
+                  <option value="">Select Attack Style</option>
+                  <option value="Slang">Slang</option>
+                  <option value="Technical Terms">Technical Terms</option>
+                  <option value="Misspellings">Misspellings</option>
+                  <option value="Word Play">Word Play</option>
+                  <option value="Hypotheticals">Hypotheticals</option>
+                  <option value="Historical Scenario">Historical Scenario</option>
+                  <option value="Uncommon Dialects">Uncommon Dialects</option>
+                </select>
+              </label>
+            </div>
           )}
         </div>
 
