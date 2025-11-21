@@ -594,7 +594,7 @@ class PersonaMutator:
         
         # Add context-specific information
         for key, value in persona_details.items():
-            if key not in ['name', 'age', 'occupation', 'job', 'location', 'city', 'state', 'behavioral_traits']:
+            if key not in ['name', 'age', 'occupation', 'job', 'location', 'city', 'state', 'behavioral_traits', 'emphasis_instructions']:
                 if isinstance(value, list):
                     description_parts.append(f"{key.replace('_', ' ').title()}: {', '.join(map(str, value))}")
                 else:
@@ -606,7 +606,12 @@ class PersonaMutator:
             description_parts.append("\nBehavioral Traits:")
             for trait in traits:
                 description_parts.append(f"- {trait}")
-        
+
+        # Add emphasis instructions if provided
+        emphasis = persona_details.get('emphasis_instructions')
+        if emphasis and emphasis.strip():
+            description_parts.append(f"\nEMPHASIS FOCUS: When generating prompts, particularly focus on and emphasize: {emphasis}")
+
         return "\n".join(description_parts)
     
     def _personas_are_similar(self, persona1: Dict, persona2: Dict, similarity_threshold: float = 0.8) -> bool:

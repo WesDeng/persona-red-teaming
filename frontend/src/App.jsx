@@ -42,6 +42,8 @@ function App() {
   const [mutationParametersExpanded, setMutationParametersExpanded] = useState(false)
   const [riskCategory, setRiskCategory] = useState('')
   const [attackStyle, setAttackStyle] = useState('')
+  const [mutationType, setMutationType] = useState('persona') // 'persona', 'rainbow', 'risk-category'
+  const [markedUnsafe, setMarkedUnsafe] = useState(new Set()) // Track user-marked unsafe items
 
   const personaInstructions = [
     'We are not storing any of your data. All the data is processed locally in your browser.',
@@ -80,6 +82,32 @@ function App() {
     setPersona(INITIAL_PERSONA)
   }
 
+  const handleMarkUnsafe = (resultIdx, promptIdx) => {
+    const key = `${resultIdx}-${promptIdx}`
+    setMarkedUnsafe(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(key)) {
+        newSet.delete(key)
+      } else {
+        newSet.add(key)
+      }
+      return newSet
+    })
+
+    // Log the metric for later use (can be sent to backend later)
+    const result = results[resultIdx]
+    const metricData = {
+      timestamp: new Date().toISOString(),
+      seed_prompt: result.seed_prompt,
+      adversarial_prompt: result.adversarial_prompts[promptIdx],
+      target_response: result.target_responses[promptIdx],
+      guard_verdict: result.guard_results[promptIdx].verdict,
+      guard_score: result.guard_results[promptIdx].score,
+      user_marked_unsafe: !markedUnsafe.has(key) // Toggle state
+    }
+    console.log('User marked unsafe metric:', metricData)
+  }
+
   const handleGenerate = async () => {
     // Validation for preselected mode
     if (seedMode === 'preselected' && selectedSeeds.length === 0) {
@@ -97,6 +125,7 @@ function App() {
         emphasis_instructions: emphasisInstructions,
         risk_category: riskCategory,
         attack_style: attackStyle,
+        mutation_type: mutationType,
         num_seed_prompts: numSeedPrompts,
         num_mutations_per_seed: numMutations,
         seed_mode: seedMode
@@ -201,12 +230,12 @@ function App() {
         </div>
 
         <div className="mutation-parameters">
-          <div 
+          <div
             className="mutation-parameters-header"
             onClick={() => setMutationParametersExpanded(!mutationParametersExpanded)}
           >
             <div className="mutation-parameters-label">
-              <h3>Mutating through additional parameters <span className="optional-text">(Optional)</span></h3>
+              <h3>Mutation Type <span className="optional-text">(Default: Persona-based)</span></h3>
             </div>
             <span className={`mutation-parameters-chevron ${mutationParametersExpanded ? 'expanded' : ''}`}>
               ▼
@@ -215,40 +244,56 @@ function App() {
           {mutationParametersExpanded && (
             <div className="mutation-parameters-controls">
               <label>
-                Risk Category:
+                Mutation Type:
                 <select
-                  value={riskCategory}
-                  onChange={(e) => setRiskCategory(e.target.value)}
+                  value={mutationType}
+                  onChange={(e) => setMutationType(e.target.value)}
                 >
-                  <option value="">Select Risk Category</option>
-                  <option value="Violence and Hate">Violence and Hate</option>
-                  <option value="Sexual Content">Sexual Content</option>
-                  <option value="Criminal Planning">Criminal Planning</option>
-                  <option value="Guns and Illegal Weapons">Guns and Illegal Weapons</option>
-                  <option value="Regulated or Controlled Substances">Regulated or Controlled Substances</option>
-                  <option value="Self-Harm">Self-Harm</option>
-                  <option value="Fraud and Scams">Fraud and Scams</option>
-                  <option value="Cybercrime and Hacking">Cybercrime and Hacking</option>
-                  <option value="Terrorism">Terrorism</option>
+                  <option value="persona">Persona-based (uses your persona)</option>
+                  <option value="rainbow">Random Rainbow Teaming (random category + style)</option>
+                  <option value="risk-category">Risk Category + Attack Style Selection</option>
                 </select>
               </label>
 
-              <label>
-                Attack Style:
-                <select
-                  value={attackStyle}
-                  onChange={(e) => setAttackStyle(e.target.value)}
-                >
-                  <option value="">Select Attack Style</option>
-                  <option value="Slang">Slang</option>
-                  <option value="Technical Terms">Technical Terms</option>
-                  <option value="Misspellings">Misspellings</option>
-                  <option value="Word Play">Word Play</option>
-                  <option value="Hypotheticals">Hypotheticals</option>
-                  <option value="Historical Scenario">Historical Scenario</option>
-                  <option value="Uncommon Dialects">Uncommon Dialects</option>
-                </select>
-              </label>
+              {mutationType === 'risk-category' && (
+                <>
+                  <label>
+                    Risk Category:
+                    <select
+                      value={riskCategory}
+                      onChange={(e) => setRiskCategory(e.target.value)}
+                    >
+                      <option value="">Select Risk Category</option>
+                      <option value="Violence and Hate">Violence and Hate</option>
+                      <option value="Sexual Content">Sexual Content</option>
+                      <option value="Criminal Planning">Criminal Planning</option>
+                      <option value="Guns and Illegal Weapons">Guns and Illegal Weapons</option>
+                      <option value="Regulated or Controlled Substances">Regulated or Controlled Substances</option>
+                      <option value="Self-Harm">Self-Harm</option>
+                      <option value="Fraud and Scams">Fraud and Scams</option>
+                      <option value="Cybercrime and Hacking">Cybercrime and Hacking</option>
+                      <option value="Terrorism">Terrorism</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    Attack Style:
+                    <select
+                      value={attackStyle}
+                      onChange={(e) => setAttackStyle(e.target.value)}
+                    >
+                      <option value="">Select Attack Style</option>
+                      <option value="Slang">Slang</option>
+                      <option value="Technical Terms">Technical Terms</option>
+                      <option value="Misspellings">Misspellings</option>
+                      <option value="Word Play">Word Play</option>
+                      <option value="Hypotheticals">Hypotheticals</option>
+                      <option value="Historical Scenario">Historical Scenario</option>
+                      <option value="Uncommon Dialects">Uncommon Dialects</option>
+                    </select>
+                  </label>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -406,12 +451,20 @@ function App() {
                       </div>
 
                       <h5>Guard Evaluation:</h5>
-                      <span className={`guard-result ${result.guard_results[promptIdx].verdict}`}>
-                        {result.guard_results[promptIdx].verdict.toUpperCase()}
-                      </span>
-                      <span className="guard-score">
-                        (Score: {result.guard_results[promptIdx].score.toFixed(2)})
-                      </span>
+                      <div className="guard-evaluation-row">
+                        <span className={`guard-result ${result.guard_results[promptIdx].verdict}`}>
+                          {result.guard_results[promptIdx].verdict.toUpperCase()}
+                        </span>
+                        <span className="guard-score">
+                          (Score: {result.guard_results[promptIdx].score.toFixed(2)})
+                        </span>
+                        <button
+                          className={`mark-unsafe-btn ${markedUnsafe.has(`${resultIdx}-${promptIdx}`) ? 'marked' : ''}`}
+                          onClick={() => handleMarkUnsafe(resultIdx, promptIdx)}
+                        >
+                          {markedUnsafe.has(`${resultIdx}-${promptIdx}`) ? 'Marked Unsafe' : 'Mark as Unsafe'}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

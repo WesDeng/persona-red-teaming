@@ -620,6 +620,40 @@ code {
   margin-left: 10px;
 }
 
+.guard-evaluation-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mark-unsafe-btn {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  margin-left: auto;
+}
+
+.mark-unsafe-btn:hover {
+  background-color: #c0392b;
+  transform: translateY(-1px);
+}
+
+.mark-unsafe-btn.marked {
+  background-color: #95a5a6;
+  color: white;
+}
+
+.mark-unsafe-btn.marked:hover {
+  background-color: #7f8c8d;
+}
+
 .error-message {
   background-color: #f8d7da;
   color: #721c24;
