@@ -187,7 +187,8 @@ function App() {
     <div className="app">
       <div className="header">
         <h1>PersonaTeaming Interactive Interface</h1>
-        <p>This is an interactive interface where you can draft and improve your own persona to generate adversarial prompts. <br /> You can also iteratively edit and re-attack the prompts to find the most effective adversarial prompts.</p>
+        <p>This is an interactive interface where you can draft and improve your own persona to generate adversarial prompts. <br /> You can also iteratively edit and re-attack the prompts to find the most effective adversarial prompts.
+        <br /> We offer three mutation types, and also LLM-generated suggestions for adversarial prompts.</p>
       </div>
 
       <div className="persona-section">
@@ -249,9 +250,10 @@ function App() {
                   value={mutationType}
                   onChange={(e) => setMutationType(e.target.value)}
                 >
-                  <option value="persona">Persona-based (uses your persona)</option>
-                  <option value="rainbow">Random Rainbow Teaming (random category + style)</option>
-                  <option value="risk-category">Risk Category + Attack Style Selection</option>
+                  <option value="persona">Persona only mutation</option>
+                  <option value="risk-category">Mutate with selected risk category & attack style</option>
+                  <option value="rainbow">Mutate with random risk category & attack style</option>
+                  
                 </select>
               </label>
 
