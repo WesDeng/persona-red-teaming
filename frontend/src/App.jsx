@@ -201,12 +201,22 @@ function App() {
             Tips and Instructions
           </button>
         </div>
-        <textarea
-          className="persona-textarea"
-          value={persona}
-          onChange={(e) => setPersona(e.target.value)}
-          placeholder="write your persona here"
-        />
+        <div className="persona-textarea-wrapper">
+          <textarea
+            className="persona-textarea"
+            value={persona}
+            onChange={(e) => setPersona(e.target.value)}
+            placeholder="write your persona here"
+          />
+          <button
+            className="template-btn-overlay"
+            onClick={handleApplyTemplate}
+            disabled={loading}
+            title="Apply Persona Template"
+          >
+            Apply Persona Template
+          </button>
+        </div>
 
         <div className="emphasis-section">
           <div 
@@ -335,14 +345,6 @@ function App() {
               max="10"
             />
           </label>
-
-          <button
-            className="template-btn"
-            onClick={handleApplyTemplate}
-            disabled={loading}
-          >
-            Apply Persona Template
-          </button>
 
           <button
             className="generate-btn"
