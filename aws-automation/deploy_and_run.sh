@@ -21,7 +21,7 @@ AMI_ID="ami-0c55b159cbfafe1f0"  # Ubuntu 22.04 LTS (update for your region)
 KEY_NAME="persona-redteaming-key"  # Your EC2 key pair name
 KEY_PATH="$HOME/.ssh/${KEY_NAME}.pem"  # Local path to your private key
 SECURITY_GROUP="persona-redteaming-sg"  # Security group name
-SPOT_INSTANCE=true  # Use spot instances for ~70% cost savings
+SPOT_INSTANCE=false  # Use spot instances for ~70% cost savings
 
 # Project Configuration
 # This script is in aws-automation/, so project root is parent directory
@@ -229,10 +229,13 @@ setup_instance() {
     ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no ubuntu@"$PUBLIC_IP" << 'ENDSSH'
         set -e
 
+        # Clean apt lists to fix potential GPG errors
+        sudo rm -rf /var/lib/apt/lists/*
+
         # Update system
         sudo apt-get update
         sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-            python3-pip python3-venv git tmux htop
+            python3-pip python3.10-venv git tmux htop
 
         echo "Setup complete"
 ENDSSH
@@ -313,20 +316,35 @@ monitor_experiment() {
     log "This may take several hours depending on your configuration..."
 
     while true; do
-        # Check if tmux session is still running
-        SESSION_RUNNING=$(ssh -i "$KEY_PATH" ubuntu@"$PUBLIC_IP" \
-            "tmux list-sessions 2>/dev/null | grep redteam || echo 'none'")
+        # Check if tmux session is still running (with timeout and retry)
+        SESSION_RUNNING=$(ssh -i "$KEY_PATH" \
+            -o ConnectTimeout=30 \
+            -o ServerAliveInterval=60 \
+            -o ServerAliveCountMax=3 \
+            ubuntu@"$PUBLIC_IP" \
+            "tmux list-sessions 2>/dev/null | grep redteam || echo 'none'" 2>/dev/null || echo 'ssh_error')
+
+        # Handle SSH connection errors
+        if [ "$SESSION_RUNNING" = "ssh_error" ]; then
+            warn "SSH connection failed, retrying in 30 seconds..."
+            sleep 30
+            continue
+        fi
 
         if [ "$SESSION_RUNNING" = "none" ]; then
             log "✓ Experiment completed!"
             break
         fi
 
-        # Show last few lines of log
+        # Show last few lines of log (with timeout, don't fail if this errors)
         echo ""
         log "Recent log output:"
-        ssh -i "$KEY_PATH" ubuntu@"$PUBLIC_IP" \
-            "tail -n 5 $REMOTE_DIR/experiment.log 2>/dev/null || echo 'Log not available yet'"
+        ssh -i "$KEY_PATH" \
+            -o ConnectTimeout=30 \
+            -o ServerAliveInterval=60 \
+            -o ServerAliveCountMax=3 \
+            ubuntu@"$PUBLIC_IP" \
+            "tail -n 5 $REMOTE_DIR/experiment.log 2>/dev/null || echo 'Log not available yet'" 2>/dev/null || warn "Could not fetch logs (network issue)"
 
         # Wait before checking again
         sleep 60
@@ -337,23 +355,36 @@ monitor_experiment() {
 run_analysis() {
     log "Running analysis scripts..."
 
-    # Determine the log directory based on config
-    LOG_DIR=$(ssh -i "$KEY_PATH" ubuntu@"$PUBLIC_IP" \
+    # Determine the log directory based on config (with error handling)
+    LOG_DIR=$(ssh -i "$KEY_PATH" \
+        -o ConnectTimeout=30 \
+        -o ServerAliveInterval=60 \
+        ubuntu@"$PUBLIC_IP" \
         "cd $REMOTE_DIR && source venv/bin/activate && python -c \"
 import yaml
 with open('$CONFIG_FILE') as f:
     config = yaml.safe_load(f)
 print(config.get('log_dir', './logs'))
-\"")
+\"" 2>/dev/null || echo "logs")
 
     # Find the actual log directory (should be logs-*/model-name/harmbench)
-    ACTUAL_LOG_DIR=$(ssh -i "$KEY_PATH" ubuntu@"$PUBLIC_IP" \
-        "find $REMOTE_DIR/$LOG_DIR -type d -name 'harmbench' | head -1")
+    ACTUAL_LOG_DIR=$(ssh -i "$KEY_PATH" \
+        -o ConnectTimeout=30 \
+        ubuntu@"$PUBLIC_IP" \
+        "find $REMOTE_DIR/$LOG_DIR -type d -name 'harmbench' | head -1" 2>/dev/null)
+
+    if [ -z "$ACTUAL_LOG_DIR" ]; then
+        warn "Could not find harmbench log directory, skipping analysis"
+        return 0
+    fi
 
     log "Log directory: $ACTUAL_LOG_DIR"
 
-    # Run both analysis scripts
-    ssh -i "$KEY_PATH" ubuntu@"$PUBLIC_IP" << ENDSSH
+    # Run both analysis scripts (don't fail the whole script if analysis fails)
+    ssh -i "$KEY_PATH" \
+        -o ConnectTimeout=30 \
+        -o ServerAliveInterval=60 \
+        ubuntu@"$PUBLIC_IP" << ENDSSH || warn "Analysis failed, but continuing..."
         set -e
         cd $REMOTE_DIR
         source venv/bin/activate
@@ -382,28 +413,32 @@ download_results() {
     RESULTS_DIR="$PROJECT_DIR/aws-results-${EXPERIMENT_ID}"
     mkdir -p "$RESULTS_DIR"
 
-    # Download logs
+    # Download logs (with timeout options)
+    log "Downloading experiment logs..."
     rsync -avz --progress \
-        -e "ssh -i $KEY_PATH -o StrictHostKeyChecking=no" \
-        ubuntu@"$PUBLIC_IP":"$REMOTE_DIR/logs-*/" "$RESULTS_DIR/" || true
+        -e "ssh -i $KEY_PATH -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=60" \
+        ubuntu@"$PUBLIC_IP":"$REMOTE_DIR/logs-*/" "$RESULTS_DIR/" || warn "Failed to download some log files"
 
     # Download experiment log
-    scp -i "$KEY_PATH" ubuntu@"$PUBLIC_IP":"$REMOTE_DIR/experiment.log" \
-        "$RESULTS_DIR/" || true
+    log "Downloading experiment log file..."
+    scp -i "$KEY_PATH" -o ConnectTimeout=30 -o ServerAliveInterval=60 \
+        ubuntu@"$PUBLIC_IP":"$REMOTE_DIR/experiment.log" \
+        "$RESULTS_DIR/" || warn "Failed to download experiment.log"
 
     log "✓ Results downloaded to: $RESULTS_DIR"
 }
 
-# Stop instance
-stop_instance() {
-    log "Stopping EC2 instance..."
+# Terminate instance (spot instances can't be stopped, only terminated)
+terminate_instance() {
+    log "Terminating EC2 instance..."
 
-    aws ec2 stop-instances \
+    aws ec2 terminate-instances \
         --region "$AWS_REGION" \
-        --instance-ids "$INSTANCE_ID"
+        --instance-ids "$INSTANCE_ID" \
+        --query 'TerminatingInstances[0].CurrentState.Name' \
+        --output text
 
-    log "✓ Instance stopped: $INSTANCE_ID"
-    log "Note: You can terminate it manually when you're done with: aws ec2 terminate-instances --instance-ids $INSTANCE_ID"
+    log "✓ Instance terminated: $INSTANCE_ID"
 }
 
 # Cleanup on error
@@ -411,8 +446,8 @@ cleanup_on_error() {
     error "Script failed. Cleaning up..."
 
     if [ -n "$INSTANCE_ID" ]; then
-        warn "Stopping instance: $INSTANCE_ID"
-        aws ec2 stop-instances --region "$AWS_REGION" --instance-ids "$INSTANCE_ID" || true
+        warn "Terminating instance: $INSTANCE_ID"
+        aws ec2 terminate-instances --region "$AWS_REGION" --instance-ids "$INSTANCE_ID" || true
     fi
 }
 
@@ -468,8 +503,8 @@ main() {
     # Step 10: Download results
     download_results
 
-    # Step 11: Stop instance
-    stop_instance
+    # Step 11: Terminate instance
+    terminate_instance
 
     # Update experiment status to completed
     update_experiment_status "$EXPERIMENT_ID" "completed"
@@ -480,8 +515,8 @@ main() {
     log "=========================================="
     log "Experiment ID: $EXPERIMENT_ID"
     log "Results are in: $RESULTS_DIR"
-    log "Instance $INSTANCE_ID has been stopped (but not terminated)"
-    log "You can terminate it with: aws ec2 terminate-instances --region $AWS_REGION --instance-ids $INSTANCE_ID"
+    # log "Instance $INSTANCE_ID has been stopped (but not terminated)"
+    # log "You can terminate it with: aws ec2 terminate-instances --region $AWS_REGION --instance-ids $INSTANCE_ID"
     log "Or use: ./check_experiments.sh to manage all experiments"
 }
 

@@ -44,6 +44,10 @@ function App() {
   const [attackStyle, setAttackStyle] = useState('')
   const [mutationType, setMutationType] = useState('persona') // 'persona', 'rainbow', 'risk-category'
   const [markedUnsafe, setMarkedUnsafe] = useState(new Set()) // Track user-marked unsafe items
+  const [refreshingSeeds, setRefreshingSeeds] = useState(false)
+  const [showingSuggestionsFor, setShowingSuggestionsFor] = useState(null) // {resultIdx, promptIdx}
+  const [currentSuggestions, setCurrentSuggestions] = useState([])
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
 
   const personaInstructions = [
     'We are not storing any of your data. All the data is processed locally in your browser.',
@@ -76,6 +80,48 @@ function App() {
         return [...prev, seed]
       }
     })
+  }
+
+  const handleRefreshSeeds = async () => {
+    setRefreshingSeeds(true)
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/preselected-seeds/refresh`)
+      setPreselectedSeeds(response.data.seeds)
+      // Clear current selections since we have new seeds
+      setSelectedSeeds([])
+    } catch (err) {
+      console.error('Failed to refresh seeds:', err)
+      setError('Failed to refresh seed prompts')
+    } finally {
+      setRefreshingSeeds(false)
+    }
+  }
+
+  const handleGetSuggestions = async (resultIdx, promptIdx) => {
+    setLoadingSuggestions(true)
+    setShowingSuggestionsFor({ resultIdx, promptIdx })
+    setError(null)
+
+    try {
+      const result = results[resultIdx]
+      const response = await axios.post(`${API_BASE_URL}/api/suggest-mutations`, {
+        seed_prompt: result.seed_prompt,
+        adversarial_prompt: result.adversarial_prompts[promptIdx],
+        persona: persona
+      })
+
+      setCurrentSuggestions(response.data.suggestions)
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to generate suggestions')
+      setShowingSuggestionsFor(null)
+    } finally {
+      setLoadingSuggestions(false)
+    }
+  }
+
+  const handleCloseSuggestions = () => {
+    setShowingSuggestionsFor(null)
+    setCurrentSuggestions([])
   }
 
   const handleApplyTemplate = () => {
@@ -358,7 +404,16 @@ function App() {
 
         {seedMode === 'preselected' && (
           <div className="seed-selection">
-            <h3>Select Seed Prompts to Test:</h3>
+            <div className="seed-selection-header">
+              <h3>Select Seed Prompts to Test:</h3>
+              <button
+                className="refresh-seeds-btn"
+                onClick={handleRefreshSeeds}
+                disabled={refreshingSeeds}
+              >
+                {refreshingSeeds ? 'Refreshing...' : '🔄 Refresh Prompts'}
+              </button>
+            </div>
             {preselectedSeeds.map((seed, index) => (
               <label key={index} className="seed-checkbox">
                 <input
@@ -406,14 +461,25 @@ function App() {
                 <div key={promptIdx} className="adversarial-prompt">
                   <h4>
                     <span>Adversarial Prompt #{promptIdx + 1}</span>
-                    {!editingPrompt || editingPrompt.resultIdx !== resultIdx || editingPrompt.promptIdx !== promptIdx ? (
-                      <button
-                        className="edit-btn"
-                        onClick={() => handleEditPrompt(resultIdx, promptIdx)}
-                      >
-                        Edit
-                      </button>
-                    ) : null}
+                    <div className="prompt-actions">
+                      {!editingPrompt || editingPrompt.resultIdx !== resultIdx || editingPrompt.promptIdx !== promptIdx ? (
+                        <>
+                          <button
+                            className="edit-btn"
+                            onClick={() => handleEditPrompt(resultIdx, promptIdx)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="suggest-btn"
+                            onClick={() => handleGetSuggestions(resultIdx, promptIdx)}
+                            disabled={loadingSuggestions}
+                          >
+                            💡 Get Suggestions
+                          </button>
+                        </>
+                      ) : null}
+                    </div>
                   </h4>
 
                   {editingPrompt?.resultIdx === resultIdx && editingPrompt?.promptIdx === promptIdx ? (
@@ -469,6 +535,35 @@ function App() {
                           {markedUnsafe.has(`${resultIdx}-${promptIdx}`) ? 'Marked Unsafe' : 'Mark as Unsafe'}
                         </button>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Suggestion Panel */}
+                  {showingSuggestionsFor?.resultIdx === resultIdx && showingSuggestionsFor?.promptIdx === promptIdx && (
+                    <div className="suggestion-panel">
+                      <div className="suggestion-header">
+                        <h5>💡 Mutation Suggestions</h5>
+                        <button className="close-suggestions-btn" onClick={handleCloseSuggestions}>
+                          ×
+                        </button>
+                      </div>
+                      {loadingSuggestions ? (
+                        <div className="loading-suggestions">
+                          <div className="loading-spinner"></div>
+                          <p>Generating suggestions...</p>
+                        </div>
+                      ) : (
+                        <div className="suggestions-content">
+                          <p className="suggestions-intro">
+                            Based on your persona, here are some directions to explore:
+                          </p>
+                          <ul className="suggestions-list">
+                            {currentSuggestions.map((suggestion, idx) => (
+                              <li key={idx}>{suggestion}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
