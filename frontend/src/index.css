@@ -578,6 +578,13 @@ code {
   margin-bottom: 10px;
 }
 
+.edit-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+}
+
 .save-btn {
   background-color: #27ae60;
   color: white;
@@ -586,11 +593,16 @@ code {
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
-  margin-right: 5px;
+  transition: background-color 0.2s;
 }
 
-.save-btn:hover {
+.save-btn:hover:not(:disabled) {
   background-color: #229954;
+}
+
+.save-btn:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
 }
 
 .cancel-btn {
@@ -601,10 +613,16 @@ code {
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-.cancel-btn:hover {
+.cancel-btn:hover:not(:disabled) {
   background-color: #c0392b;
+}
+
+.cancel-btn:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
 }
 
 .response-section {

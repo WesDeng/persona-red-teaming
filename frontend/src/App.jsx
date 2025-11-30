@@ -461,25 +461,14 @@ function App() {
                 <div key={promptIdx} className="adversarial-prompt">
                   <h4>
                     <span>Adversarial Prompt #{promptIdx + 1}</span>
-                    <div className="prompt-actions">
-                      {!editingPrompt || editingPrompt.resultIdx !== resultIdx || editingPrompt.promptIdx !== promptIdx ? (
-                        <>
-                          <button
-                            className="edit-btn"
-                            onClick={() => handleEditPrompt(resultIdx, promptIdx)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="suggest-btn"
-                            onClick={() => handleGetSuggestions(resultIdx, promptIdx)}
-                            disabled={loadingSuggestions}
-                          >
-                            💡 Get Suggestions
-                          </button>
-                        </>
-                      ) : null}
-                    </div>
+                    {!editingPrompt || editingPrompt.resultIdx !== resultIdx || editingPrompt.promptIdx !== promptIdx ? (
+                      <button
+                        className="edit-btn"
+                        onClick={() => handleEditPrompt(resultIdx, promptIdx)}
+                      >
+                        Edit
+                      </button>
+                    ) : null}
                   </h4>
 
                   {editingPrompt?.resultIdx === resultIdx && editingPrompt?.promptIdx === promptIdx ? (
@@ -489,20 +478,29 @@ function App() {
                         value={editedPromptText}
                         onChange={(e) => setEditedPromptText(e.target.value)}
                       />
-                      <button
-                        className="save-btn"
-                        onClick={handleSaveAndReattack}
-                        disabled={reattacking}
-                      >
-                        {reattacking ? 'Reattacking...' : 'Save & Reattack'}
-                      </button>
-                      <button
-                        className="cancel-btn"
-                        onClick={handleCancelEdit}
-                        disabled={reattacking}
-                      >
-                        Cancel
-                      </button>
+                      <div className="edit-actions">
+                        <button
+                          className="save-btn"
+                          onClick={handleSaveAndReattack}
+                          disabled={reattacking}
+                        >
+                          {reattacking ? 'Reattacking...' : 'Save & Reattack'}
+                        </button>
+                        <button
+                          className="cancel-btn"
+                          onClick={handleCancelEdit}
+                          disabled={reattacking}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="suggest-btn"
+                          onClick={() => handleGetSuggestions(resultIdx, promptIdx)}
+                          disabled={loadingSuggestions}
+                        >
+                          💡 Get Suggestions
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="prompt-text">{prompt}</div>
