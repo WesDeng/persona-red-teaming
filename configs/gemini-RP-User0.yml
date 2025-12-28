@@ -1,17 +1,16 @@
 ########## CONFIGURATION ##########
-# RP + RTer0 - RainbowPlus with Political Strategist persona
-# Target: Qwen via Together AI
+# RP + User0 - RainbowPlus with Stay-at-home Mom persona
+# Target: Gemini 2.5 Pro via Google AI
 
-log_dir: ./logs-qwen-RP-RTer0-political
+log_dir: ./logs-gemini-RP-User0-mom
 algorithm: rainbowplus
 method: combined
 
-# Target LLM Configuration - Qwen via Together AI
+# Target LLM Configuration - Gemini 2.5 Pro via Google AI Native SDK
 target_llm:
-  type_: openai
-  base_url: https://api.together.xyz/v1
+  type_: gemini
   model_kwargs:
-    model: Qwen/Qwen2.5-72B-Instruct-Turbo
+    model: gemini-2.5-pro
   sampling_params:
     temperature: 0.7
     top_p: 0.9
@@ -49,6 +48,7 @@ log_interval: 50
 shuffle: true
 
 mutation_strategy: combined
+persona_type: RegularAIUsers
 persona_config: configs/personas/detailed.yml
 
 # Include personas
@@ -62,4 +62,4 @@ archive:
     - Style
     - Persona
   selected_personas:
-    - political_strategist
+    - stay_at_home_mom

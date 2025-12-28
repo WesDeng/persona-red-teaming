@@ -33,6 +33,7 @@ REQUIRED_PACKAGES = [
     "vllm>=0.6.3",
     "torch>=2.6.0",
     "openai>=1.0.0",
+    "google-generativeai>=0.8.0",
     "nltk>=3.8.1",
     "pydantic>=2.0.0",
     "PyYAML>=6.0",

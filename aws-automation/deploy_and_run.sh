@@ -2,8 +2,8 @@
 
 #
 # Full automation script for running persona red-teaming experiments on AWS EC2
-# Usage: ./deploy_and_run.sh <config-file-name>
-# Example: ./deploy_and_run.sh qwen-target.yml
+# Usage: ./deploy_and_run.sh <config-file-1> [config-file-2] [config-file-3] ...
+# Example: ./deploy_and_run.sh qwen-target.yml gpt4-target.yml
 #
 
 set -e  # Exit on error
@@ -29,11 +29,20 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REMOTE_DIR="/home/ubuntu/persona-red-teaming"
 
-# Experiment Configuration
-# Config file path is relative to project root
-CONFIG_FILE="${1:-configs/qwen-target.yml}"  # Default to qwen-target.yml
-CONFIG_FILE_FULL_PATH="$PROJECT_DIR/$CONFIG_FILE"
-EXPERIMENT_NAME=$(basename "$CONFIG_FILE" .yml)
+# Multiple config files support
+if [ $# -eq 0 ]; then
+    CONFIG_FILES=("configs/qwen-target.yml")  # Default
+else
+    CONFIG_FILES=("$@")
+fi
+
+# Single instance mode - reuse instance for multiple experiments
+REUSE_INSTANCE=true  # Set to true to run all experiments on one instance
+
+# These will be set for each experiment in the loop
+CONFIG_FILE=""
+CONFIG_FILE_FULL_PATH=""
+EXPERIMENT_NAME=""
 
 # Colors for output
 RED='\033[0;31m'
@@ -71,11 +80,15 @@ check_requirements() {
         error ".env file not found at $PROJECT_DIR/.env. Please create it with your API keys."
     fi
 
-    if [ ! -f "$CONFIG_FILE_FULL_PATH" ]; then
-        error "Config file not found: $CONFIG_FILE_FULL_PATH"
-    fi
-
     log "✓ All requirements met"
+}
+
+# Check if a specific config file exists
+check_config_file() {
+    local config_file="$1"
+    if [ ! -f "$config_file" ]; then
+        error "Config file not found: $config_file"
+    fi
 }
 
 # Create security group if it doesn't exist
@@ -89,6 +102,9 @@ setup_security_group() {
         --query 'SecurityGroups[0].GroupId' \
         --output text 2>/dev/null || echo "None")
 
+    # Get current IP
+    MY_IP=$(curl -s https://checkip.amazonaws.com)
+
     if [ "$SG_ID" = "None" ]; then
         log "Creating security group..."
         SG_ID=$(aws ec2 create-security-group \
@@ -98,19 +114,19 @@ setup_security_group() {
             --query 'GroupId' \
             --output text)
 
-        # Allow SSH from your IP
-        MY_IP=$(curl -s https://checkip.amazonaws.com)
-        aws ec2 authorize-security-group-ingress \
-            --region "$AWS_REGION" \
-            --group-id "$SG_ID" \
-            --protocol tcp \
-            --port 22 \
-            --cidr "${MY_IP}/32"
-
         log "✓ Security group created: $SG_ID"
     else
         log "✓ Security group already exists: $SG_ID"
     fi
+
+    # Always ensure current IP has SSH access (idempotent - won't fail if already exists)
+    log "Ensuring current IP ($MY_IP) has SSH access..."
+    aws ec2 authorize-security-group-ingress \
+        --region "$AWS_REGION" \
+        --group-id "$SG_ID" \
+        --protocol tcp \
+        --port 22 \
+        --cidr "${MY_IP}/32" 2>/dev/null || log "IP already authorized (or failed to add)"
 }
 
 # Get the correct AMI ID for the region
@@ -356,6 +372,7 @@ run_analysis() {
     log "Running analysis scripts..."
 
     # Determine the log directory based on config (with error handling)
+    # Make LOG_DIR global so download_results can use it
     LOG_DIR=$(ssh -i "$KEY_PATH" \
         -o ConnectTimeout=30 \
         -o ServerAliveInterval=60 \
@@ -414,10 +431,11 @@ download_results() {
     mkdir -p "$RESULTS_DIR"
 
     # Download logs (with timeout options)
-    log "Downloading experiment logs..."
+    # Use specific LOG_DIR instead of logs-* to avoid downloading all experiments
+    log "Downloading experiment logs from: $LOG_DIR"
     rsync -avz --progress \
         -e "ssh -i $KEY_PATH -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=60" \
-        ubuntu@"$PUBLIC_IP":"$REMOTE_DIR/logs-*/" "$RESULTS_DIR/" || warn "Failed to download some log files"
+        ubuntu@"$PUBLIC_IP":"$REMOTE_DIR/$LOG_DIR/" "$RESULTS_DIR/" || warn "Failed to download some log files"
 
     # Download experiment log
     log "Downloading experiment log file..."
@@ -453,71 +471,148 @@ cleanup_on_error() {
 
 # ==================== MAIN EXECUTION ====================
 
-main() {
+# Run a single experiment with the given config file
+run_single_experiment() {
+    local config_file="$1"
+    local skip_setup="${2:-false}"  # Skip instance setup if already done
+
+    # Set config-specific variables
+    CONFIG_FILE="$config_file"
+    CONFIG_FILE_FULL_PATH="$PROJECT_DIR/$CONFIG_FILE"
+    EXPERIMENT_NAME=$(basename -- "$CONFIG_FILE" .yml)
+
     log "=========================================="
-    log "AWS EC2 Automated Experiment Runner"
+    log "Running Experiment: $EXPERIMENT_NAME"
     log "=========================================="
     log "Config file: $CONFIG_FILE"
-    log "Experiment: $EXPERIMENT_NAME"
     log ""
+
+    # Check if this specific config file exists
+    check_config_file "$CONFIG_FILE_FULL_PATH"
 
     # Generate unique experiment ID
     EXPERIMENT_ID=$(generate_experiment_id "$EXPERIMENT_NAME")
     log "Experiment ID: $EXPERIMENT_ID"
     echo ""
 
-    # Trap errors
-    trap cleanup_on_error ERR
+    # Only do setup if this is the first experiment
+    if [ "$skip_setup" = "false" ]; then
+        # Trap errors
+        trap cleanup_on_error ERR
 
-    # Step 1: Check requirements
-    check_requirements
+        # Setup AWS resources
+        setup_security_group
+        get_ami_id
 
-    # Step 2: Setup AWS resources
-    setup_security_group
-    get_ami_id
+        # Launch instance
+        launch_instance
 
-    # Step 3: Launch instance
-    launch_instance
+        # Setup instance
+        setup_instance
+
+        # Upload code
+        upload_code
+
+        # Install dependencies
+        install_dependencies
+    fi
 
     # Save experiment metadata
     save_experiment_metadata "$EXPERIMENT_ID" "$INSTANCE_ID" "$CONFIG_FILE" "$EXPERIMENT_NAME" "$PUBLIC_IP" "running"
 
-    # Step 4: Setup instance
-    setup_instance
-
-    # Step 5: Upload code
-    upload_code
-
-    # Step 6: Install dependencies
-    install_dependencies
-
-    # Step 7: Run experiment
+    # Run experiment
     run_experiment
 
-    # Step 8: Monitor experiment
+    # Monitor experiment
     monitor_experiment
 
-    # Step 9: Run analysis
+    # Run analysis
     run_analysis
 
-    # Step 10: Download results
+    # Download results
     download_results
-
-    # Step 11: Terminate instance
-    terminate_instance
 
     # Update experiment status to completed
     update_experiment_status "$EXPERIMENT_ID" "completed"
 
     log ""
     log "=========================================="
-    log "✓ ALL DONE!"
+    log "✓ EXPERIMENT COMPLETE!"
     log "=========================================="
     log "Experiment ID: $EXPERIMENT_ID"
     log "Results are in: $RESULTS_DIR"
-    # log "Instance $INSTANCE_ID has been stopped (but not terminated)"
-    # log "You can terminate it with: aws ec2 terminate-instances --region $AWS_REGION --instance-ids $INSTANCE_ID"
-    log "Or use: ./check_experiments.sh to manage all experiments"
+    log ""
+
+    # Store result for summary
+    COMPLETED_EXPERIMENTS+=("$EXPERIMENT_ID|$RESULTS_DIR")
+}
+
+# Main function to run all experiments
+main() {
+    log "=========================================="
+    log "AWS EC2 Multi-Experiment Runner"
+    log "=========================================="
+    log "Number of experiments to run: ${#CONFIG_FILES[@]}"
+    if [ "$REUSE_INSTANCE" = "true" ]; then
+        log "Mode: Single instance (reuse for all experiments)"
+    else
+        log "Mode: Multiple instances (one per experiment)"
+    fi
+    log ""
+
+    # Check general requirements once
+    check_requirements
+
+    # Array to track completed experiments
+    COMPLETED_EXPERIMENTS=()
+
+    # Run each experiment
+    for i in "${!CONFIG_FILES[@]}"; do
+        local config_file="${CONFIG_FILES[$i]}"
+        local experiment_num=$((i + 1))
+        local skip_setup="false"
+
+        log ""
+        log "######################################"
+        log "# EXPERIMENT $experiment_num of ${#CONFIG_FILES[@]}: $config_file"
+        log "######################################"
+        log ""
+
+        # If reusing instance and this is not the first experiment, skip setup
+        if [ "$REUSE_INSTANCE" = "true" ] && [ $i -gt 0 ]; then
+            skip_setup="true"
+            log "Reusing existing instance: $INSTANCE_ID ($PUBLIC_IP)"
+            log ""
+        fi
+
+        # Run the experiment
+        run_single_experiment "$config_file" "$skip_setup"
+
+        log ""
+        log "✓ Completed experiment $experiment_num of ${#CONFIG_FILES[@]}"
+        log ""
+    done
+
+    # Terminate instance if we were reusing it
+    if [ "$REUSE_INSTANCE" = "true" ] && [ -n "$INSTANCE_ID" ]; then
+        log "All experiments complete. Terminating shared instance..."
+        terminate_instance
+    fi
+
+    # Print final summary
+    log ""
+    log "=========================================="
+    log "✓ ALL EXPERIMENTS COMPLETE!"
+    log "=========================================="
+    log "Total experiments run: ${#COMPLETED_EXPERIMENTS[@]}"
+    log ""
+    log "Results summary:"
+    for result in "${COMPLETED_EXPERIMENTS[@]}"; do
+        IFS='|' read -r exp_id results_dir <<< "$result"
+        log "  - $exp_id: $results_dir"
+    done
+    log ""
+    log "Use: ./check_experiments.sh to manage all experiments"
 }
 
 # Run main function

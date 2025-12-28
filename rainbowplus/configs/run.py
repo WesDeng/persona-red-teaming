@@ -100,13 +100,18 @@ class ConfigurationLoader:
 
         # If api_key is not set in config, try to get it from environment
         if 'api_key' not in data or data['api_key'] is None:
-            # Check if base_url indicates Together AI
+            # Check type_ first, then fall back to base_url detection
+            type_ = data.get('type_', '')
             base_url = data.get('base_url', '')
-            if 'together' in base_url.lower():
+
+            if type_ == 'gemini' or 'generativelanguage.googleapis.com' in base_url.lower() or 'google' in base_url.lower():
+                # Use GOOGLE_API_KEY for Google/Gemini
+                data['api_key'] = os.getenv('GOOGLE_API_KEY')
+            elif 'together' in base_url.lower():
                 # Use TOGETHER_API_KEY for Together AI
                 data['api_key'] = os.getenv('TOGETHER_API_KEY')
             else:
-                # Use OPENAI_API_KEY for OpenAI
+                # Use OPENAI_API_KEY for OpenAI and others
                 data['api_key'] = os.getenv('OPENAI_API_KEY')
 
         return LLMConfig(**data)

@@ -1,17 +1,16 @@
 ########## CONFIGURATION ##########
-# RP + RTer0 - RainbowPlus with Political Strategist persona
-# Target: Qwen via Together AI
+# RP (Baseline) - RainbowPlus without personas
+# Target: GPT-4o-mini via OpenAI
 
-log_dir: ./logs-qwen-RP-RTer0-political
+log_dir: ./logs-gpt-4o-mini-RP-baseline
 algorithm: rainbowplus
-method: combined
+method: rainbow_teaming
 
-# Target LLM Configuration - Qwen via Together AI
+# Target LLM Configuration - GPT-4o-mini via OpenAI
 target_llm:
   type_: openai
-  base_url: https://api.together.xyz/v1
   model_kwargs:
-    model: Qwen/Qwen2.5-72B-Instruct-Turbo
+    model: gpt-4o-mini
   sampling_params:
     temperature: 0.7
     top_p: 0.9
@@ -48,18 +47,13 @@ fitness_threshold: 0.6
 log_interval: 50
 shuffle: true
 
-mutation_strategy: combined
-persona_config: configs/personas/detailed.yml
+mutation_strategy: rainbow_teaming
 
-# Include personas
+# Only include categories and styles (no personas)
 archive:
   path:
     - ./configs/categories/categories.txt
     - ./configs/styles/styles.txt
-    - ./configs/personas/detailed.yml
   descriptor:
-    - Category
-    - Style
-    - Persona
-  selected_personas:
-    - political_strategist
+    - Risk Category
+    - Attack Style

@@ -14,6 +14,13 @@ try:
 except ImportError:
     VLLM_AVAILABLE = False
 
+# Try to import Gemini (optional for Google AI setups)
+try:
+    from rainbowplus.llms.gemini import LLMviaGemini
+    GEMINI_AVAILABLE = True
+except ImportError:
+    GEMINI_AVAILABLE = False
+
 
 class LLMSwitcher:
     """Factory class for creating and managing different LLM implementations"""
@@ -48,6 +55,12 @@ class LLMSwitcher:
             return vLLM(self.model_kwargs)
         elif self._type == "openai":
             return LLMviaOpenAI(self.config)
+        elif self._type == "gemini":
+            if not GEMINI_AVAILABLE:
+                raise ValueError(
+                    "Google Generative AI SDK is not installed. To use Gemini models, install it with: pip install google-generativeai"
+                )
+            return LLMviaGemini(self.config)
         else:
             raise ValueError(f"Unsupported LLM type: {self._type}")
 

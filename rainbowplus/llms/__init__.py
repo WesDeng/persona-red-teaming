@@ -13,3 +13,10 @@ try:
 except ImportError:
     # vllm not installed, skip vLLM support
     pass
+
+# Try to import Gemini (optional for Google AI setups)
+try:
+    from rainbowplus.llms.gemini import *
+except ImportError:
+    # google-generativeai not installed, skip Gemini support
+    pass

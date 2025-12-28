@@ -1,17 +1,16 @@
-########## CONFIGURATION ##########
-# RP + RTer0 - RainbowPlus with Political Strategist persona
-# Target: Qwen via Together AI
+########## QUICK TEST CONFIGURATION ##########
+# Quick test to verify Gemini works with the fix
+# This runs only 2 iterations with 2 samples
 
-log_dir: ./logs-qwen-RP-RTer0-political
+log_dir: ./logs-gemini-test
 algorithm: rainbowplus
-method: combined
+method: rainbow_teaming
 
-# Target LLM Configuration - Qwen via Together AI
+# Target LLM Configuration - Gemini 2.5 Pro
 target_llm:
-  type_: openai
-  base_url: https://api.together.xyz/v1
+  type_: gemini
   model_kwargs:
-    model: Qwen/Qwen2.5-72B-Instruct-Turbo
+    model: gemini-2.5-pro
   sampling_params:
     temperature: 0.7
     top_p: 0.9
@@ -40,26 +39,21 @@ fitness_llm:
 ########## ALGORITHM PARAMETERS ##########
 
 sample_prompts: ./data/harmbench.json
-num_samples: 150
-max_iters: 200
+num_samples: 2          # Only 2 samples for quick test
+max_iters: 2            # Only 2 iterations for quick test
 sim_threshold: 0.6
 num_mutations: 10
 fitness_threshold: 0.6
-log_interval: 50
+log_interval: 1         # Log every iteration for testing
 shuffle: true
 
-mutation_strategy: combined
-persona_config: configs/personas/detailed.yml
+mutation_strategy: rainbow_teaming
 
-# Include personas
+# Only include categories and styles (no personas)
 archive:
   path:
     - ./configs/categories/categories.txt
     - ./configs/styles/styles.txt
-    - ./configs/personas/detailed.yml
   descriptor:
-    - Category
-    - Style
-    - Persona
-  selected_personas:
-    - political_strategist
+    - Risk Category
+    - Attack Style

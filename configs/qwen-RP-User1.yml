@@ -11,7 +11,7 @@ target_llm:
   type_: openai
   base_url: https://api.together.xyz/v1
   model_kwargs:
-    model: Qwen/Qwen2.5-7B-Instruct-Turbo
+    model: Qwen/Qwen2.5-72B-Instruct-Turbo
   sampling_params:
     temperature: 0.7
     top_p: 0.9
