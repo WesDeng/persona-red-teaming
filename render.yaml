@@ -1,0 +1,29 @@
+services:
+  # Backend API Service
+  - type: web
+    name: persona-rt-api
+    runtime: docker
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: ./api
+    envVars:
+      - key: DATABASE_PATH
+        value: /data/history.db
+      - key: PORT
+        value: 8000
+    healthCheckPath: /health
+    autoDeploy: true
+    disk:
+      name: db-storage
+      mountPath: /data
+      sizeGB: 1
+
+  # Frontend Service
+  - type: web
+    name: persona-rt-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false  # Set this manually in Render dashboard to your backend URL
+    autoDeploy: true

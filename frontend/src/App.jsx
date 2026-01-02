@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react'
-import axios from 'axios'
+import Navigation from './components/Navigation'
+import HistorySidebar from './components/HistorySidebar'
+import PersonaHistory from './components/PersonaHistory'
+import PromptHistory from './components/PromptHistory'
+import {
+  generateAPI,
+  reattackAPI,
+  getPreselectedSeedsAPI,
+  refreshPreselectedSeedsAPI,
+  getSuggestMutationsAPI,
+  markUnsafeAPI,
+  getSessionStatsAPI,
+} from './utils/api'
 
 const INITIAL_PERSONA = `name: [name]
 age: [age]
@@ -21,9 +33,13 @@ behavioral_traits:
   - [behavioral_trait_3]
 tech_use: [tech_use]`
 
-const API_BASE_URL = 'http://localhost:8000'
-
 function App() {
+  // Navigation and history state
+  const [currentView, setCurrentView] = useState('home') // 'home', 'persona-history', 'prompt-history'
+  const [stats, setStats] = useState(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Persona editor state
   const [persona, setPersona] = useState('')
   const [emphasisInstructions, setEmphasisInstructions] = useState('')
   const [numSeedPrompts, setNumSeedPrompts] = useState(5)
@@ -59,10 +75,39 @@ function App() {
     "You can also directly edit the adversarial prompts to make them more effective!"
   ]
 
+  // Load session stats on mount
+  useEffect(() => {
+    loadStats()
+
+    // Listen for custom navigation events from sidebar
+    const handleNavigate = (event) => {
+      setCurrentView(event.detail)
+    }
+    window.addEventListener('navigate', handleNavigate)
+    return () => window.removeEventListener('navigate', handleNavigate)
+  }, [])
+
+  const loadStats = async () => {
+    try {
+      const response = await getSessionStatsAPI()
+      setStats(response.data)
+    } catch (error) {
+      console.error('Failed to load session stats:', error)
+      // Set default stats if none exist
+      setStats({
+        total_personas: 0,
+        total_prompts: 0,
+        total_unsafe_by_guard: 0,
+        total_unsafe_by_user: 0,
+        overall_success_rate: 0,
+      })
+    }
+  }
+
   // Fetch preselected seeds when mode changes
   useEffect(() => {
     if (seedMode === 'preselected' && preselectedSeeds.length === 0) {
-      axios.get(`${API_BASE_URL}/api/preselected-seeds`)
+      getPreselectedSeedsAPI()
         .then(response => {
           setPreselectedSeeds(response.data.seeds)
         })
@@ -85,7 +130,7 @@ function App() {
   const handleRefreshSeeds = async () => {
     setRefreshingSeeds(true)
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/preselected-seeds/refresh`)
+      const response = await refreshPreselectedSeedsAPI()
       setPreselectedSeeds(response.data.seeds)
       // Clear current selections since we have new seeds
       setSelectedSeeds([])
@@ -104,7 +149,7 @@ function App() {
 
     try {
       const result = results[resultIdx]
-      const response = await axios.post(`${API_BASE_URL}/api/suggest-mutations`, {
+      const response = await getSuggestMutationsAPI({
         seed_prompt: result.seed_prompt,
         adversarial_prompt: result.adversarial_prompts[promptIdx],
         persona: persona
@@ -128,8 +173,11 @@ function App() {
     setPersona(INITIAL_PERSONA)
   }
 
-  const handleMarkUnsafe = (resultIdx, promptIdx) => {
+  const handleMarkUnsafe = async (resultIdx, promptIdx, promptId) => {
     const key = `${resultIdx}-${promptIdx}`
+    const newMarked = !markedUnsafe.has(key)
+
+    // Update local state optimistically
     setMarkedUnsafe(prev => {
       const newSet = new Set(prev)
       if (newSet.has(key)) {
@@ -140,18 +188,26 @@ function App() {
       return newSet
     })
 
-    // Log the metric for later use (can be sent to backend later)
-    const result = results[resultIdx]
-    const metricData = {
-      timestamp: new Date().toISOString(),
-      seed_prompt: result.seed_prompt,
-      adversarial_prompt: result.adversarial_prompts[promptIdx],
-      target_response: result.target_responses[promptIdx],
-      guard_verdict: result.guard_results[promptIdx].verdict,
-      guard_score: result.guard_results[promptIdx].score,
-      user_marked_unsafe: !markedUnsafe.has(key) // Toggle state
+    // Save to backend if we have a prompt ID
+    if (promptId) {
+      try {
+        await markUnsafeAPI(promptId, newMarked)
+        // Reload stats after marking
+        loadStats()
+      } catch (error) {
+        console.error('Failed to save feedback:', error)
+        // Revert on error
+        setMarkedUnsafe(prev => {
+          const newSet = new Set(prev)
+          if (newSet.has(key)) {
+            newSet.delete(key)
+          } else {
+            newSet.add(key)
+          }
+          return newSet
+        })
+      }
     }
-    console.log('User marked unsafe metric:', metricData)
   }
 
   const handleGenerate = async () => {
@@ -182,9 +238,11 @@ function App() {
         requestData.selected_seeds = selectedSeeds
       }
 
-      const response = await axios.post(`${API_BASE_URL}/api/generate`, requestData)
+      const response = await generateAPI(requestData)
 
       setResults(response.data.results)
+      // Reload stats after successful generation
+      loadStats()
     } catch (err) {
       setError(err.response?.data?.detail || err.message || 'Failed to generate prompts')
     } finally {
@@ -209,19 +267,32 @@ function App() {
     setError(null)
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/reattack`, {
-        prompt: editedPromptText
-      })
+      // Get original prompt ID if available
+      const originalPromptId = results[resultIdx].prompt_ids?.[promptIdx]
+
+      const response = await reattackAPI(
+        { prompt: editedPromptText },
+        originalPromptId
+      )
 
       // Update the results with new response and guard result
       const newResults = [...results]
       newResults[resultIdx].adversarial_prompts[promptIdx] = editedPromptText
       newResults[resultIdx].target_responses[promptIdx] = response.data.target_response
       newResults[resultIdx].guard_results[promptIdx] = response.data.guard_result
+
+      // Update prompt ID if a new one was returned
+      if (response.data.prompt_id && newResults[resultIdx].prompt_ids) {
+        newResults[resultIdx].prompt_ids[promptIdx] = response.data.prompt_id
+      }
+
       setResults(newResults)
 
       setEditingPrompt(null)
       setEditedPromptText('')
+
+      // Reload stats after reattack
+      loadStats()
     } catch (err) {
       setError(err.response?.data?.detail || err.message || 'Failed to reattack')
     } finally {
@@ -229,15 +300,42 @@ function App() {
     }
   }
 
+  // Handler for loading persona from history
+  const handleLoadPersona = (personaData) => {
+    setPersona(personaData.personaText || personaData.persona_yaml || '')
+    setEmphasisInstructions(personaData.emphasisInstructions || personaData.emphasis_instructions || '')
+    setMutationType(personaData.mutationType || personaData.mutation_type || 'persona')
+    setRiskCategory(personaData.riskCategory || personaData.risk_category || '')
+    setAttackStyle(personaData.attackStyle || personaData.attack_style || '')
+    setCurrentView('home')
+    setSidebarOpen(false)
+  }
+
   return (
     <div className="app">
-      <div className="header">
-        <h1>PersonaTeaming Interactive Interface</h1>
-        <p>This is an interactive interface where you can draft and improve your own persona to generate adversarial prompts. <br /> You can also iteratively edit and re-attack the prompts to find the most effective adversarial prompts.
-        <br /> We offer three mutation types, and also LLM-generated suggestions for adversarial prompts.</p>
-      </div>
+      <Navigation
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+        stats={stats}
+      />
 
-      <div className="persona-section">
+      {currentView === 'home' && (
+        <>
+          <div className="header">
+            <div className="header-content">
+              <h1>PersonaTeaming Interactive Interface</h1>
+              <button
+                className="history-btn"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+              >
+                {sidebarOpen ? 'Close History' : 'View History'}
+              </button>
+            </div>
+            <p>This is an interactive interface where you can draft and improve your own persona to generate adversarial prompts. <br /> You can also iteratively edit and re-attack the prompts to find the most effective adversarial prompts.
+            <br /> We offer three mutation types, and also LLM-generated suggestions for adversarial prompts.</p>
+          </div>
+
+          <div className="persona-section">
         <div className="persona-header">
           <h2>User Persona</h2>
           <button
@@ -528,7 +626,7 @@ function App() {
                         </span>
                         <button
                           className={`mark-unsafe-btn ${markedUnsafe.has(`${resultIdx}-${promptIdx}`) ? 'marked' : ''}`}
-                          onClick={() => handleMarkUnsafe(resultIdx, promptIdx)}
+                          onClick={() => handleMarkUnsafe(resultIdx, promptIdx, result.prompt_ids?.[promptIdx])}
                         >
                           {markedUnsafe.has(`${resultIdx}-${promptIdx}`) ? 'Marked Unsafe' : 'Mark as Unsafe'}
                         </button>
@@ -571,34 +669,55 @@ function App() {
         </div>
       )}
 
-      {showInstructions && (
-        <div
-          className="instruction-overlay"
-          onClick={() => setShowInstructions(false)}
-        >
-          <div
-            className="instruction-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="instruction-modal-header">
-              <h3>Persona Writing Tips and Interface Instructions</h3>
-              <button
-                className="close-instruction-btn"
-                onClick={() => setShowInstructions(false)}
-                aria-label="Close instructions"
+          {showInstructions && (
+            <div
+              className="instruction-overlay"
+              onClick={() => setShowInstructions(false)}
+            >
+              <div
+                className="instruction-modal"
+                onClick={(e) => e.stopPropagation()}
               >
-                ×
-              </button>
+                <div className="instruction-modal-header">
+                  <h3>Persona Writing Tips and Interface Instructions</h3>
+                  <button
+                    className="close-instruction-btn"
+                    onClick={() => setShowInstructions(false)}
+                    aria-label="Close instructions"
+                  >
+                    ×
+                  </button>
+                </div>
+                <p>Use these guidelines to craft richer personas and use the interface effectively:</p>
+                <ul className="instruction-list">
+                  {personaInstructions.map((tip, index) => (
+                    <li key={index}>{tip}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
-            <p>Use these guidelines to craft richer personas and use the interface effectively:</p>
-            <ul className="instruction-list">
-              {personaInstructions.map((tip, index) => (
-                <li key={index}>{tip}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
+          )}
+        </>
       )}
+
+      {currentView === 'persona-history' && (
+        <PersonaHistory onLoadPersona={handleLoadPersona} />
+      )}
+
+      {currentView === 'prompt-history' && (
+        <PromptHistory />
+      )}
+
+      <HistorySidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        onLoadPersona={handleLoadPersona}
+        onViewPrompt={(prompt) => {
+          // Switch to prompt history view and potentially highlight the prompt
+          setCurrentView('prompt-history')
+          setSidebarOpen(false)
+        }}
+      />
     </div>
   )
 }

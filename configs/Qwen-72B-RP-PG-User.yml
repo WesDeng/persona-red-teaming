@@ -1,0 +1,55 @@
+log_dir: ./logs-gemini-flash-rainbow-persona-users
+algorithm: rainbowplus
+method: combined-fit
+
+mutation_strategy: combined-fit
+persona_config: configs/personas/users.yml
+persona_type: RegularAIUsers
+
+target_llm:
+  type_: openai
+  base_url: https://api.together.xyz/v1
+  model_kwargs:
+    model: Qwen/Qwen2.5-72B-Instruct-Turbo
+  sampling_params:
+    temperature: 0.7
+    top_p: 0.9
+    max_tokens: 512
+
+mutator_llm:
+  type_: openai
+  model_kwargs:
+    model: gpt-4o
+  sampling_params:
+    temperature: 0.7
+    top_p: 0.9
+    max_tokens: 512
+
+fitness_llm:
+  type_: openai
+  model_kwargs:
+    model: gpt-4o
+  sampling_params:
+    temperature: 0.7
+    top_p: 0.9
+    max_tokens: 512
+
+sample_prompts: ./data/harmbench.json
+num_samples: 150
+max_iters: 200
+sim_threshold: 0.6
+num_mutations: 10
+fitness_threshold: 0.6
+log_interval: 50
+shuffle: true
+
+# Include categories, styles, and personas in the archive
+archive:
+  path: 
+    - ./configs/categories/categories.txt
+    - ./configs/styles/styles.txt
+    - ./configs/personas/users.yml
+  descriptor:
+    - Category
+    - Style
+    - Persona

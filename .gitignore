@@ -59,3 +59,17 @@ frontend/node_modules/
 frontend/dist/
 frontend/build/
 frontend/.vite/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+data/
+api/data/
+
+# Backups
+*.backup
+.aws-experiments.json.backup
+
+# Test files
+test_database.py

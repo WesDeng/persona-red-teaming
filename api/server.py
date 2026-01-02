@@ -10,13 +10,19 @@ import yaml
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sqlalchemy.orm import Session as DBSession
 
 # Import rainbowplus components
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
+
+# Import database components
+from api.database import init_database, get_db_dependency
+from api import models
+from api import schemas
 
 from rainbowplus.mutators.persona import PersonaMutator
 from rainbowplus.llms.openai import LLMviaOpenAI
@@ -86,11 +92,18 @@ app = FastAPI(title="Persona Red-Teaming API")
 # Enable CORS for React frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # React dev servers
+    allow_origins=["*"],  # Allow all origins for deployment
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Docker and load balancers"""
+    return {"status": "healthy", "service": "persona-red-teaming-api"}
 
 
 # Request/Response Models
@@ -140,6 +153,7 @@ class PromptResult(BaseModel):
     adversarial_prompts: List[str]
     target_responses: List[str]
     guard_results: List[Dict[str, Any]]
+    prompt_ids: Optional[List[int]] = None  # Database IDs for adversarial prompts
 
 
 class GenerateResponse(BaseModel):
@@ -151,6 +165,7 @@ class ReattackResponse(BaseModel):
     prompt: str
     target_response: str
     guard_result: Dict[str, Any]
+    prompt_id: Optional[int] = None  # Database ID for the edited prompt
 
 
 class SuggestMutationsResponse(BaseModel):
@@ -298,6 +313,7 @@ def initialize_llms():
 async def startup_event():
     """Application startup event"""
     initialize_llms()
+    init_database()  # Initialize database tables
 
 
 @app.get("/")
@@ -342,7 +358,11 @@ async def refresh_preselected_seeds():
 
 
 @app.post("/api/generate", response_model=GenerateResponse)
-async def generate_attacks(request: GenerateRequest):
+async def generate_attacks(
+    request: GenerateRequest,
+    session_id: Optional[str] = Header(None, alias="X-Session-ID"),  # Optional for backward compatibility
+    db: DBSession = Depends(get_db_dependency)
+):
     """
     Generate adversarial prompts based on persona
 
@@ -353,7 +373,8 @@ async def generate_attacks(request: GenerateRequest):
        - Use PersonaMutator to generate adversarial variants
        - Attack target LLM with each variant
        - Run guard on each response
-    4. Return all results
+    4. Save all data to database (if session_id provided)
+    5. Return all results
     """
     global mutator_llm, target_llm, guard, seed_prompts_cache
 
@@ -540,6 +561,111 @@ async def generate_attacks(request: GenerateRequest):
                 guard_results=guard_results
             ))
 
+        # Save to database if session_id provided
+        if session_id:
+            try:
+                # Ensure session exists or create it
+                db_session = db.query(models.Session).filter(models.Session.id == session_id).first()
+                if not db_session:
+                    db_session = models.Session(id=session_id)
+                    db.add(db_session)
+                    db.commit()
+                    db.refresh(db_session)
+
+                # Update last_active
+                from datetime import datetime
+                db_session.last_active = datetime.utcnow()
+                db.commit()
+
+                # Save persona
+                db_persona = models.Persona(
+                    session_id=session_id,
+                    persona_yaml=persona_text,
+                    emphasis_instructions=request.emphasis_instructions,
+                    mutation_type=request.mutation_type,
+                    risk_category=request.risk_category,
+                    attack_style=request.attack_style
+                )
+                db.add(db_persona)
+                db.commit()
+                db.refresh(db_persona)
+
+                # Save generation metadata
+                db_generation = models.Generation(
+                    session_id=session_id,
+                    persona_id=db_persona.id,
+                    seed_mode=request.seed_mode,
+                    num_seed_prompts=request.num_seed_prompts,
+                    num_mutations_per_seed=request.num_mutations_per_seed
+                )
+                db.add(db_generation)
+                db.commit()
+                db.refresh(db_generation)
+
+                # Save all prompts, responses, and guard results
+                for result in results:
+                    # Save seed prompt
+                    db_seed_prompt = models.Prompt(
+                        generation_id=db_generation.id,
+                        prompt_type='seed',
+                        prompt_text=result.seed_prompt
+                    )
+                    db.add(db_seed_prompt)
+                    db.commit()
+                    db.refresh(db_seed_prompt)
+
+                    # Collect prompt IDs for this result
+                    prompt_ids = []
+
+                    # Save each adversarial prompt with its response and guard result
+                    for idx, (adv_prompt, target_resp, guard_res) in enumerate(
+                        zip(result.adversarial_prompts, result.target_responses, result.guard_results)
+                    ):
+                        # Save adversarial prompt
+                        db_adv_prompt = models.Prompt(
+                            generation_id=db_generation.id,
+                            prompt_type='adversarial',
+                            prompt_text=adv_prompt,
+                            seed_prompt_id=db_seed_prompt.id,
+                            mutation_index=idx
+                        )
+                        db.add(db_adv_prompt)
+                        db.commit()
+                        db.refresh(db_adv_prompt)
+
+                        # Add prompt ID to list
+                        prompt_ids.append(db_adv_prompt.id)
+
+                        # Save target response
+                        db_target_resp = models.TargetResponse(
+                            prompt_id=db_adv_prompt.id,
+                            response_text=target_resp
+                        )
+                        db.add(db_target_resp)
+                        db.commit()
+                        db.refresh(db_target_resp)
+
+                        # Save guard result
+                        db_guard_result = models.GuardResult(
+                            prompt_id=db_adv_prompt.id,
+                            target_response_id=db_target_resp.id,
+                            verdict=guard_res['verdict'],
+                            score=guard_res['score'],
+                            is_harmful=guard_res['is_harmful']
+                        )
+                        db.add(db_guard_result)
+
+                    # Assign prompt IDs to result
+                    result.prompt_ids = prompt_ids
+
+                db.commit()
+                print(f"✓ Saved generation to database (session: {session_id})")
+
+            except Exception as e:
+                print(f"Warning: Failed to save to database: {e}")
+                db.rollback()
+                # Don't fail the request if database save fails
+
         return GenerateResponse(
             results=results,
             persona_used=persona_text
@@ -550,7 +676,12 @@ async def generate_attacks(request: GenerateRequest):
 
 
 @app.post("/api/reattack", response_model=ReattackResponse)
-async def reattack(request: ReattackRequest):
+async def reattack(
+    request: ReattackRequest,
+    original_prompt_id: Optional[int] = None,  # ID of prompt being edited (for history tracking)
+    session_id: Optional[str] = Header(None, alias="X-Session-ID"),  # Optional for backward compatibility
+    db: DBSession = Depends(get_db_dependency)
+):
     """
     Re-run attack and guard for a single edited prompt
 
@@ -558,7 +689,8 @@ async def reattack(request: ReattackRequest):
     1. Take edited prompt
     2. Attack target LLM
     3. Run guard on response
-    4. Return results
+    4. Save edit history to database (if session_id and original_prompt_id provided)
+    5. Return results
     """
     global target_llm, guard
 
@@ -598,10 +730,62 @@ async def reattack(request: ReattackRequest):
             "verdict": "unsafe" if score > 0.5 else "safe"
         }
 
+        # Save to database if session_id and original_prompt_id provided
+        edited_prompt_id = None
+        if session_id and original_prompt_id:
+            try:
+                # Get original prompt to link edit history
+                original_prompt = db.query(models.Prompt).filter(
+                    models.Prompt.id == original_prompt_id
+                ).first()
+
+                if original_prompt:
+                    # Save edited prompt
+                    db_edited_prompt = models.Prompt(
+                        generation_id=original_prompt.generation_id,
+                        prompt_type='edited',
+                        prompt_text=request.prompt,
+                        parent_prompt_id=original_prompt_id,
+                        seed_prompt_id=original_prompt.seed_prompt_id
+                    )
+                    db.add(db_edited_prompt)
+                    db.commit()
+                    db.refresh(db_edited_prompt)
+
+                    edited_prompt_id = db_edited_prompt.id
+
+                    # Save new target response
+                    db_target_resp = models.TargetResponse(
+                        prompt_id=db_edited_prompt.id,
+                        response_text=target_response
+                    )
+                    db.add(db_target_resp)
+                    db.commit()
+                    db.refresh(db_target_resp)
+
+                    # Save new guard result
+                    db_guard_result = models.GuardResult(
+                        prompt_id=db_edited_prompt.id,
+                        target_response_id=db_target_resp.id,
+                        verdict=guard_result['verdict'],
+                        score=guard_result['score'],
+                        is_harmful=guard_result['is_harmful']
+                    )
+                    db.add(db_guard_result)
+                    db.commit()
+
+                    print(f"✓ Saved edit history to database (prompt: {original_prompt_id} → {db_edited_prompt.id})")
+
+            except Exception as e:
+                print(f"Warning: Failed to save edit history to database: {e}")
+                db.rollback()
+                # Don't fail the request if database save fails
+
         return ReattackResponse(
             prompt=request.prompt,
             target_response=target_response,
-            guard_result=guard_result
+            guard_result=guard_result,
+            prompt_id=edited_prompt_id
         )
 
     except Exception as e:
@@ -662,6 +846,376 @@ async def suggest_mutations(request: SuggestMutationsRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating suggestions: {str(e)}")
+
+
+# ============================================================================
+# HISTORY TRACKING ENDPOINTS
+# ============================================================================
+
+@app.post("/api/mark-unsafe")
+async def mark_unsafe(
+    request: schemas.MarkUnsafeRequest,
+    session_id: str = Header(..., alias="X-Session-ID"),
+    db: DBSession = Depends(get_db_dependency)
+):
+    """Save user's 'mark as unsafe' feedback"""
+    try:
+        # Check if feedback already exists for this prompt
+        existing = db.query(models.UserFeedback).filter(
+            models.UserFeedback.session_id == session_id,
+            models.UserFeedback.prompt_id == request.prompt_id
+        ).first()
+
+        if existing:
+            existing.marked_unsafe = request.marked
+            db.commit()
+        else:
+            feedback = models.UserFeedback(
+                session_id=session_id,
+                prompt_id=request.prompt_id,
+                marked_unsafe=request.marked
+            )
+            db.add(feedback)
+            db.commit()
+
+        return schemas.MarkUnsafeResponse(
+            status="success",
+            prompt_id=request.prompt_id,
+            marked_unsafe=request.marked
+        )
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error saving feedback: {str(e)}")
+
+
+@app.get("/api/history/personas", response_model=schemas.PersonaHistoryResponse)
+async def get_persona_history(
+    session_id: str = Header(..., alias="X-Session-ID"),
+    limit: int = 50,
+    offset: int = 0,
+    db: DBSession = Depends(get_db_dependency)
+):
+    """Get persona history for session with success metrics"""
+    try:
+        # Query personas
+        personas_query = db.query(models.Persona).filter(
+            models.Persona.session_id == session_id
+        ).order_by(models.Persona.created_at.desc())
+
+        total = personas_query.count()
+        personas = personas_query.offset(offset).limit(limit).all()
+
+        # Calculate metrics for each persona
+        persona_items = []
+        for persona in personas:
+            total_generations = len(persona.generations)
+
+            # Count unsafe/safe results
+            unsafe_count = 0
+            safe_count = 0
+
+            for generation in persona.generations:
+                for prompt in generation.prompts:
+                    if prompt.prompt_type in ['adversarial', 'edited']:
+                        for guard in prompt.guard_results:
+                            if guard.verdict == 'unsafe':
+                                unsafe_count += 1
+                            else:
+                                safe_count += 1
+
+            total_prompts = unsafe_count + safe_count
+            success_rate = (unsafe_count / total_prompts * 100) if total_prompts > 0 else 0.0
+
+            persona_items.append(schemas.PersonaHistoryItem(
+                id=persona.id,
+                persona_yaml=persona.persona_yaml,
+                emphasis_instructions=persona.emphasis_instructions,
+                mutation_type=persona.mutation_type,
+                risk_category=persona.risk_category,
+                attack_style=persona.attack_style,
+                created_at=persona.created_at,
+                total_generations=total_generations,
+                success_rate=success_rate,
+                unsafe_count=unsafe_count,
+                safe_count=safe_count
+            ))
+
+        return schemas.PersonaHistoryResponse(personas=persona_items, total=total)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading persona history: {str(e)}")
+
+
+@app.get("/api/history/prompts", response_model=schemas.PromptHistoryResponse)
+async def get_prompt_history(
+    session_id: str = Header(..., alias="X-Session-ID"),
+    limit: int = 100,
+    offset: int = 0,
+    verdict_filter: Optional[str] = None,
+    db: DBSession = Depends(get_db_dependency)
+):
+    """Get prompt history with evaluations and user feedback"""
+    try:
+        # Build query
+        query = db.query(models.Prompt).join(models.Generation).filter(
+            models.Generation.session_id == session_id,
+            models.Prompt.prompt_type.in_(['adversarial', 'edited'])
+        )
+
+        # Apply verdict filter (skip if 'all')
+        if verdict_filter and verdict_filter != 'all':
+            query = query.join(models.GuardResult).filter(models.GuardResult.verdict == verdict_filter)
+
+        query = query.order_by(models.Prompt.created_at.desc())
+
+        total = query.count()
+        prompts = query.offset(offset).limit(limit).all()
+
+        # Build response items
+        prompt_items = []
+        for prompt in prompts:
+            # Get seed prompt text
+            seed_text = None
+            if prompt.seed_prompt_id:
+                seed_prompt = db.query(models.Prompt).filter(models.Prompt.id == prompt.seed_prompt_id).first()
+                seed_text = seed_prompt.prompt_text if seed_prompt else None
+
+            # Get latest target response and guard result
+            latest_response = prompt.target_responses[-1] if prompt.target_responses else None
+            latest_guard = prompt.guard_results[-1] if prompt.guard_results else None
+
+            # Get user feedback
+            user_feedback = db.query(models.UserFeedback).filter(
+                models.UserFeedback.prompt_id == prompt.id
+            ).first()
+
+            # Count edits
+            edit_count = db.query(models.Prompt).filter(models.Prompt.parent_prompt_id == prompt.id).count()
+
+            # Get persona
+            persona = db.query(models.Persona).join(models.Generation).filter(
+                models.Generation.id == prompt.generation_id
+            ).first()
+
+            prompt_items.append(schemas.PromptHistoryItem(
+                id=prompt.id,
+                prompt_type=prompt.prompt_type,
+                prompt_text=prompt.prompt_text,
+                seed_prompt_text=seed_text,
+                target_response=latest_response.response_text if latest_response else None,
+                guard_verdict=latest_guard.verdict if latest_guard else None,
+                guard_score=latest_guard.score if latest_guard else None,
+                user_marked_unsafe=user_feedback.marked_unsafe if user_feedback else None,
+                edit_count=edit_count,
+                created_at=prompt.created_at,
+                persona_yaml=persona.persona_yaml if persona else ""
+            ))
+
+        return schemas.PromptHistoryResponse(prompts=prompt_items, total=total)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading prompt history: {str(e)}")
+
+
+@app.get("/api/history/prompts/{prompt_id}/edits", response_model=schemas.EditHistoryResponse)
+async def get_edit_history(
+    prompt_id: int,
+    session_id: str = Header(..., alias="X-Session-ID"),
+    db: DBSession = Depends(get_db_dependency)
+):
+    """Get complete edit history for a prompt"""
+    try:
+        # Get original prompt
+        original = db.query(models.Prompt).filter(models.Prompt.id == prompt_id).first()
+        if not original:
+            raise HTTPException(status_code=404, detail="Prompt not found")
+
+        # Build edit chain
+        edits = []
+
+        def collect_edits(parent_id, depth=0):
+            if depth > 50:  # Prevent infinite loops
+                return
+
+            children = db.query(models.Prompt).filter(
+                models.Prompt.parent_prompt_id == parent_id
+            ).order_by(models.Prompt.created_at).all()
+
+            for child in children:
+                guard = child.guard_results[-1] if child.guard_results else None
+                edits.append(schemas.EditHistoryItem(
+                    id=child.id,
+                    prompt_text=child.prompt_text,
+                    guard_verdict=guard.verdict if guard else "unknown",
+                    guard_score=guard.score if guard else 0.0,
+                    created_at=child.created_at,
+                    is_original=False
+                ))
+                collect_edits(child.id, depth + 1)
+
+        # Add original
+        original_guard = original.guard_results[-1] if original.guard_results else None
+        edit_chain = [schemas.EditHistoryItem(
+            id=original.id,
+            prompt_text=original.prompt_text,
+            guard_verdict=original_guard.verdict if original_guard else "unknown",
+            guard_score=original_guard.score if original_guard else 0.0,
+            created_at=original.created_at,
+            is_original=True
+        )]
+
+        # Collect all edits
+        collect_edits(prompt_id)
+        edit_chain.extend(edits)
+
+        return schemas.EditHistoryResponse(
+            original_prompt_id=prompt_id,
+            edits=edit_chain,
+            total_edits=len(edits)
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading edit history: {str(e)}")
+
+
+@app.get("/api/history/stats", response_model=schemas.SessionStats)
+async def get_session_stats(
+    session_id: str = Header(..., alias="X-Session-ID"),
+    db: DBSession = Depends(get_db_dependency)
+):
+    """Get summary statistics for session"""
+    try:
+        session = db.query(models.Session).filter(models.Session.id == session_id).first()
+        if not session:
+            # Create session if it doesn't exist
+            session = models.Session(id=session_id)
+            db.add(session)
+            db.commit()
+            db.refresh(session)
+
+        # Count personas
+        total_personas = db.query(models.Persona).filter(models.Persona.session_id == session_id).count()
+
+        # Count generations
+        total_generations = db.query(models.Generation).filter(models.Generation.session_id == session_id).count()
+
+        # Count prompts
+        total_prompts = db.query(models.Prompt).join(models.Generation).filter(
+            models.Generation.session_id == session_id,
+            models.Prompt.prompt_type.in_(['adversarial', 'edited'])
+        ).count()
+
+        # Count unsafe by guard
+        total_unsafe_by_guard = db.query(models.GuardResult).join(models.Prompt).join(models.Generation).filter(
+            models.Generation.session_id == session_id,
+            models.GuardResult.verdict == 'unsafe'
+        ).count()
+
+        # Count unsafe by user
+        total_unsafe_by_user = db.query(models.UserFeedback).filter(
+            models.UserFeedback.session_id == session_id,
+            models.UserFeedback.marked_unsafe == True
+        ).count()
+
+        # Calculate success rate
+        overall_success_rate = (total_unsafe_by_guard / total_prompts * 100) if total_prompts > 0 else 0.0
+
+        # Find most successful persona
+        personas = db.query(models.Persona).filter(models.Persona.session_id == session_id).all()
+        most_successful_id = None
+        highest_rate = 0.0
+
+        for persona in personas:
+            unsafe = 0
+            total = 0
+            for gen in persona.generations:
+                for prompt in gen.prompts:
+                    if prompt.prompt_type in ['adversarial', 'edited']:
+                        for guard in prompt.guard_results:
+                            total += 1
+                            if guard.verdict == 'unsafe':
+                                unsafe += 1
+
+            if total > 0:
+                rate = (unsafe / total * 100)
+                if rate > highest_rate:
+                    highest_rate = rate
+                    most_successful_id = persona.id
+
+        return schemas.SessionStats(
+            session_id=session_id,
+            total_personas=total_personas,
+            total_generations=total_generations,
+            total_prompts=total_prompts,
+            total_unsafe_by_guard=total_unsafe_by_guard,
+            total_unsafe_by_user=total_unsafe_by_user,
+            overall_success_rate=overall_success_rate,
+            most_successful_persona_id=most_successful_id,
+            created_at=session.created_at,
+            last_active=session.last_active
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading session stats: {str(e)}")
+
+
+@app.get("/api/history/personas/{persona_id}")
+async def get_persona_by_id(
+    persona_id: int,
+    session_id: str = Header(..., alias="X-Session-ID"),
+    db: DBSession = Depends(get_db_dependency)
+):
+    """Get a specific persona by ID (for reloading into editor)"""
+    try:
+        persona = db.query(models.Persona).filter(
+            models.Persona.id == persona_id,
+            models.Persona.session_id == session_id
+        ).first()
+
+        if not persona:
+            raise HTTPException(status_code=404, detail="Persona not found")
+
+        return {
+            "id": persona.id,
+            "persona_yaml": persona.persona_yaml,
+            "emphasis_instructions": persona.emphasis_instructions,
+            "mutation_type": persona.mutation_type,
+            "risk_category": persona.risk_category,
+            "attack_style": persona.attack_style,
+            "created_at": persona.created_at
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading persona: {str(e)}")
+
+
+@app.delete("/api/session")
+async def delete_session(
+    session_id: str = Header(..., alias="X-Session-ID"),
+    db: DBSession = Depends(get_db_dependency)
+):
+    """Allow users to delete their session and all associated data"""
+    try:
+        session = db.query(models.Session).filter(models.Session.id == session_id).first()
+
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        db.delete(session)  # CASCADE will delete all related data
+        db.commit()
+
+        return {"status": "success", "message": "All session data deleted"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting session: {str(e)}")
 
 
 if __name__ == "__main__":
