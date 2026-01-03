@@ -589,7 +589,6 @@ function App() {
             )}
           </div>
         )}
-      </div>
 
       {error && (
         <div className="error-message">
