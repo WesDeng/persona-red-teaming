@@ -64,6 +64,7 @@ function App() {
   const [showingSuggestionsFor, setShowingSuggestionsFor] = useState(null) // {resultIdx, promptIdx}
   const [currentSuggestions, setCurrentSuggestions] = useState([])
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
+  const [baselineMode, setBaselineMode] = useState(false) // Baseline mode without persona
 
   const personaInstructions = [
     'We are not storing any of your data. All the data is processed locally in your browser.',
@@ -220,6 +221,7 @@ function App() {
     setLoading(true)
     setError(null)
     setResults(null)
+    setBaselineMode(false) // Exit baseline mode when generating with persona
 
     try {
       const requestData = {
@@ -245,6 +247,36 @@ function App() {
       loadStats()
     } catch (err) {
       setError(err.response?.data?.detail || err.message || 'Failed to generate prompts')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleBaseline = async () => {
+    setLoading(true)
+    setError(null)
+    setResults(null)
+    setBaselineMode(true) // Enter baseline mode
+
+    try {
+      const requestData = {
+        persona: '', // No persona for baseline
+        emphasis_instructions: '',
+        risk_category: '',
+        attack_style: '',
+        mutation_type: 'persona', // Use default mutation type
+        num_seed_prompts: 3, // Fixed 3 seed prompts for baseline
+        num_mutations_per_seed: 0, // No automatic mutations, user will mutate manually
+        seed_mode: 'random'
+      }
+
+      const response = await generateAPI(requestData)
+
+      setResults(response.data.results)
+      // Reload stats after successful generation
+      loadStats()
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to generate baseline prompts')
     } finally {
       setLoading(false)
     }
@@ -335,7 +367,24 @@ function App() {
             <br /> We offer three mutation types, and also LLM-generated suggestions for adversarial prompts.</p>
           </div>
 
-          <div className="persona-section">
+          {baselineMode && (
+            <div className="baseline-info">
+              <h3>🔬 Baseline Mode (No Persona)</h3>
+              <p>In baseline mode, you'll work with 3 random seed prompts without persona guidance. Manually edit and mutate the prompts to see what you can achieve without PersonaTeaming assistance.</p>
+              <button
+                className="exit-baseline-btn"
+                onClick={() => {
+                  setBaselineMode(false)
+                  setResults(null)
+                }}
+              >
+                Exit Baseline Mode
+              </button>
+            </div>
+          )}
+
+          {!baselineMode && (
+            <div className="persona-section">
         <div className="persona-header">
           <h2>User Persona</h2>
           <button
@@ -490,17 +539,28 @@ function App() {
             />
           </label>
 
-          <button
-            className="generate-btn"
-            onClick={handleGenerate}
-            disabled={loading}
-          >
-            {loading ? 'Generating...' : 'Generate Adversarial Prompts'}
-          </button>
-          
-        </div>
+          <div className="button-group">
+            <button
+              className="generate-btn"
+              onClick={handleGenerate}
+              disabled={loading}
+            >
+              {loading ? 'Generating...' : 'Generate Adversarial Prompts'}
+            </button>
 
-        {seedMode === 'preselected' && (
+            <button
+              className="baseline-btn"
+              onClick={handleBaseline}
+              disabled={loading}
+            >
+              {loading ? 'Generating...' : 'Baseline (No Persona)'}
+            </button>
+          </div>
+
+        </div>
+          )}
+
+        {!baselineMode && seedMode === 'preselected' && (
           <div className="seed-selection">
             <div className="seed-selection-header">
               <h3>Select Seed Prompts to Test:</h3>
