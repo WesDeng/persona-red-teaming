@@ -556,6 +556,7 @@ function App() {
               {loading ? 'Generating...' : 'Baseline (No Persona)'}
             </button>
           </div>
+        </div>
 
         </div>
           )}
