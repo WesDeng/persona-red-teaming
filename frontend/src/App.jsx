@@ -266,7 +266,7 @@ function App() {
         attack_style: '',
         mutation_type: 'persona', // Use default mutation type
         num_seed_prompts: 3, // Fixed 3 seed prompts for baseline
-        num_mutations_per_seed: 0, // No automatic mutations, user will mutate manually
+        num_mutations_per_seed: 1, // Generate 1 prompt per seed for users to edit
         seed_mode: 'random'
       }
 
@@ -651,13 +651,15 @@ function App() {
                         >
                           Cancel
                         </button>
-                        <button
-                          className="suggest-btn"
-                          onClick={() => handleGetSuggestions(resultIdx, promptIdx)}
-                          disabled={loadingSuggestions}
-                        >
-                          💡 Get Suggestions
-                        </button>
+                        {!baselineMode && (
+                          <button
+                            className="suggest-btn"
+                            onClick={() => handleGetSuggestions(resultIdx, promptIdx)}
+                            disabled={loadingSuggestions}
+                          >
+                            💡 Get Suggestions
+                          </button>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -695,7 +697,7 @@ function App() {
                   )}
 
                   {/* Suggestion Panel */}
-                  {showingSuggestionsFor?.resultIdx === resultIdx && showingSuggestionsFor?.promptIdx === promptIdx && (
+                  {!baselineMode && showingSuggestionsFor?.resultIdx === resultIdx && showingSuggestionsFor?.promptIdx === promptIdx && (
                     <div className="suggestion-panel">
                       <div className="suggestion-header">
                         <h5>💡 Mutation Suggestions</h5>
