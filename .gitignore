@@ -36,6 +36,8 @@ aws-results-*/
 
 # AWS experiment tracking (contains IPs and instance IDs)
 .aws-experiments.json
+.last-deployment.txt
+database-backups/
 
 # IDE
 .vscode/
