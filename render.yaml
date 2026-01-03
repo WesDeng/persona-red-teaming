@@ -4,7 +4,7 @@ services:
     name: persona-rt-api
     runtime: docker
     dockerfilePath: ./api/Dockerfile
-    dockerContext: ./api
+    dockerContext: .
     envVars:
       - key: DATABASE_PATH
         value: /data/history.db
