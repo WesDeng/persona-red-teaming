@@ -282,6 +282,33 @@ function App() {
     }
   }
 
+  const handleShuffleBaselineSeeds = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const requestData = {
+        persona: '',
+        emphasis_instructions: '',
+        risk_category: '',
+        attack_style: '',
+        mutation_type: 'persona',
+        num_seed_prompts: 3,
+        num_mutations_per_seed: 1,
+        seed_mode: 'random'
+      }
+
+      const response = await generateAPI(requestData)
+
+      setResults(response.data.results)
+      loadStats()
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to shuffle baseline prompts')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleEditPrompt = (resultIdx, promptIdx) => {
     const prompt = results[resultIdx].adversarial_prompts[promptIdx]
     setEditedPromptText(prompt)
@@ -371,15 +398,24 @@ function App() {
             <div className="baseline-info">
               <h3>🔬 Baseline Mode (No Persona)</h3>
               <p>In baseline mode, you'll work with 3 random seed prompts without persona guidance. Manually edit and mutate the prompts to see what you can achieve without PersonaTeaming assistance.</p>
-              <button
-                className="exit-baseline-btn"
-                onClick={() => {
-                  setBaselineMode(false)
-                  setResults(null)
-                }}
-              >
-                Exit Baseline Mode
-              </button>
+              <div className="baseline-buttons">
+                <button
+                  className="shuffle-seeds-btn"
+                  onClick={handleShuffleBaselineSeeds}
+                  disabled={loading}
+                >
+                  {loading ? 'Shuffling...' : '🔄 Shuffle Seeds'}
+                </button>
+                <button
+                  className="exit-baseline-btn"
+                  onClick={() => {
+                    setBaselineMode(false)
+                    setResults(null)
+                  }}
+                >
+                  Exit Baseline Mode
+                </button>
+              </div>
             </div>
           )}
 
