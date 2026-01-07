@@ -99,10 +99,10 @@ data = [
     {'Model': 'Qwen-72B', 'Method': 'RP + RTer1',    'ASR': 0.23, 'Diversity': 0.54, 'Dist_Seed': 1.32},
     {'Model': 'Qwen-72B', 'Method': 'RP + User0',    'ASR': 0.12, 'Diversity': 0.46, 'Dist_Seed': 1.32},
     {'Model': 'Qwen-72B', 'Method': 'RP + User1',    'ASR': 0.10, 'Diversity': 0.63, 'Dist_Seed': 1.31},
-    {'Model': 'Qwen-72B', 'Method': 'RP + PG_RTers', 'ASR': 0.23, 'Diversity': 0.35, 'Dist_Seed': 0.44},
-    {'Model': 'Qwen-72B', 'Method': 'RP + PG_Users', 'ASR': 0.21, 'Diversity': 0.10, 'Dist_Seed': 0.26},
-    {'Model': 'Qwen-72B', 'Method': 'PG_RTers',      'ASR': 0.15, 'Diversity': 0.60, 'Dist_Seed': 0.67},
-    {'Model': 'Qwen-72B', 'Method': 'PG_Users',      'ASR': 0.11, 'Diversity': 0.65, 'Dist_Seed': 0.67},
+    {'Model': 'Qwen-72B', 'Method': 'RP + PG_RTers', 'ASR': 0.15, 'Diversity': 0.60, 'Dist_Seed': 0.67},
+    {'Model': 'Qwen-72B', 'Method': 'RP + PG_Users', 'ASR': 0.11, 'Diversity': 0.65, 'Dist_Seed': 0.67},
+    {'Model': 'Qwen-72B', 'Method': 'PG_RTers',      'ASR': 0.23, 'Diversity': 0.35, 'Dist_Seed': 0.44},
+    {'Model': 'Qwen-72B', 'Method': 'PG_Users',      'ASR': 0.21, 'Diversity': 0.10, 'Dist_Seed': 0.26},
 
     # --- Table 7: Gemini 2.5 flash ---
     {'Model': 'Gemini Flash', 'Method': 'RP (Baseline)', 'ASR': 0.19, 'Diversity': 0.61, 'Dist_Seed': 1.28},
