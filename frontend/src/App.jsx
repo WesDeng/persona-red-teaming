@@ -264,9 +264,9 @@ function App() {
         emphasis_instructions: '',
         risk_category: '',
         attack_style: '',
-        mutation_type: 'persona', // Use default mutation type
+        mutation_type: 'baseline', // Special baseline mode - no mutations
         num_seed_prompts: 3, // Fixed 3 seed prompts for baseline
-        num_mutations_per_seed: 1, // Generate 1 prompt per seed for users to edit
+        num_mutations_per_seed: 0, // No mutations - users will edit seeds directly
         seed_mode: 'random'
       }
 
@@ -292,9 +292,9 @@ function App() {
         emphasis_instructions: '',
         risk_category: '',
         attack_style: '',
-        mutation_type: 'persona',
+        mutation_type: 'baseline', // Special baseline mode - no mutations
         num_seed_prompts: 3,
-        num_mutations_per_seed: 1,
+        num_mutations_per_seed: 0, // No mutations - users will edit seeds directly
         seed_mode: 'random'
       }
 
@@ -397,14 +397,14 @@ function App() {
           {baselineMode && (
             <div className="baseline-info">
               <h3>🔬 Baseline Mode (No Persona)</h3>
-              <p>In baseline mode, you'll work with 3 random seed prompts without persona guidance. Manually edit and mutate the prompts to see what you can achieve without PersonaTeaming assistance.</p>
+              <p>In baseline mode, you'll work with 3 random seed prompts. There are NO algorithm-generated mutations or hints - you must manually edit each seed prompt yourself. Click "Edit" on any seed prompt to modify it, then "Save & Reattack" to see the results.</p>
               <div className="baseline-buttons">
                 <button
                   className="shuffle-seeds-btn"
                   onClick={handleShuffleBaselineSeeds}
                   disabled={loading}
                 >
-                  {loading ? 'Shuffling...' : '🔄 Shuffle Seeds'}
+                  {loading ? 'Shuffling...' : '🔄 Shuffle/Refresh Seeds'}
                 </button>
                 <button
                   className="exit-baseline-btn"
@@ -646,24 +646,110 @@ function App() {
 
           {results.map((result, resultIdx) => (
             <div key={resultIdx} className="result-card">
-              <h3>Seed Prompt #{resultIdx + 1}</h3>
-              <div className="seed-prompt">
-                {result.seed_prompt}
-              </div>
+              {baselineMode ? (
+                // BASELINE MODE: Only show seed prompt, no adversarial prompts
+                <div className="baseline-seed-container">
+                  <h3>Seed #{resultIdx + 1}</h3>
 
-              {result.adversarial_prompts.map((prompt, promptIdx) => (
-                <div key={promptIdx} className="adversarial-prompt">
-                  <h4>
-                    <span>Adversarial Prompt #{promptIdx + 1}</span>
-                    {!editingPrompt || editingPrompt.resultIdx !== resultIdx || editingPrompt.promptIdx !== promptIdx ? (
-                      <button
-                        className="edit-btn"
-                        onClick={() => handleEditPrompt(resultIdx, promptIdx)}
-                      >
-                        Edit
-                      </button>
-                    ) : null}
-                  </h4>
+                  <div className="seed-prompt-section">
+                    {editingPrompt?.resultIdx === resultIdx && editingPrompt?.promptIdx === 0 ? (
+                      // Editing mode
+                      <div>
+                        <h4>Edit Your Prompt:</h4>
+                        <textarea
+                          className="prompt-textarea"
+                          value={editedPromptText}
+                          onChange={(e) => setEditedPromptText(e.target.value)}
+                          placeholder="Edit the seed prompt to create your attack..."
+                        />
+                        <div className="edit-actions">
+                          <button
+                            className="save-btn"
+                            onClick={handleSaveAndReattack}
+                            disabled={reattacking}
+                          >
+                            {reattacking ? 'Attacking...' : 'Attack with This Prompt'}
+                          </button>
+                          <button
+                            className="cancel-btn"
+                            onClick={handleCancelEdit}
+                            disabled={reattacking}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      // Display mode
+                      <div>
+                        <div className="seed-prompt-display">
+                          <p>{result.seed_prompt}</p>
+                        </div>
+                        <button
+                          className="edit-btn"
+                          onClick={() => {
+                            setEditedPromptText(result.seed_prompt)
+                            setEditingPrompt({ resultIdx, promptIdx: 0 })
+                          }}
+                        >
+                          Edit & Attack This Seed
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Show results only after user has attacked */}
+                  {reattacking?.resultIdx === resultIdx && reattacking?.promptIdx === 0 ? (
+                    <div className="loading">
+                      <div className="loading-spinner"></div>
+                      <p>Attacking and evaluating...</p>
+                    </div>
+                  ) : result.target_responses && result.target_responses[0] ? (
+                    <div className="response-section">
+                      <h5>Target Response:</h5>
+                      <div className="response-text">
+                        {result.target_responses[0]}
+                      </div>
+
+                      <h5>Guard Evaluation:</h5>
+                      <div className="guard-evaluation-row">
+                        <span className={`guard-result ${result.guard_results[0].verdict}`}>
+                          {result.guard_results[0].verdict.toUpperCase()}
+                        </span>
+                        <span className="guard-score">
+                          (Score: {result.guard_results[0].score.toFixed(2)})
+                        </span>
+                        <button
+                          className={`mark-unsafe-btn ${markedUnsafe.has(`${resultIdx}-0`) ? 'marked' : ''}`}
+                          onClick={() => handleMarkUnsafe(resultIdx, 0, result.prompt_ids?.[0])}
+                        >
+                          {markedUnsafe.has(`${resultIdx}-0`) ? 'Marked Unsafe' : 'Mark as Unsafe'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                // PERSONA MODE: Show seed + adversarial prompts
+                <>
+                  <h3>Seed Prompt #{resultIdx + 1}</h3>
+                  <div className="seed-prompt">
+                    {result.seed_prompt}
+                  </div>
+
+                  {result.adversarial_prompts.map((prompt, promptIdx) => (
+                    <div key={promptIdx} className="adversarial-prompt">
+                      <h4>
+                        <span>Adversarial Prompt #{promptIdx + 1}</span>
+                        {!editingPrompt || editingPrompt.resultIdx !== resultIdx || editingPrompt.promptIdx !== promptIdx ? (
+                          <button
+                            className="edit-btn"
+                            onClick={() => handleEditPrompt(resultIdx, promptIdx)}
+                          >
+                            Edit
+                          </button>
+                        ) : null}
+                      </h4>
 
                   {editingPrompt?.resultIdx === resultIdx && editingPrompt?.promptIdx === promptIdx ? (
                     <div>
@@ -760,8 +846,10 @@ function App() {
                       )}
                     </div>
                   )}
-                </div>
-              ))}
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           ))}
         </div>

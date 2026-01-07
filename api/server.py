@@ -448,7 +448,11 @@ async def generate_attacks(
 
             mutated_prompts = []
 
-            if request.mutation_type == "persona":
+            if request.mutation_type == "baseline":
+                # Baseline mode: no mutations, return empty list
+                # Users will edit the seed prompt directly in the frontend
+                mutated_prompts = []
+            elif request.mutation_type == "persona":
                 # Use persona-based mutation (original behavior)
                 mutated_prompts = persona_mutator.mutate(
                     prompt=seed_prompt,
