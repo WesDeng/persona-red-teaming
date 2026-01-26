@@ -23,6 +23,7 @@ TARGET MODELS:
 - GPT-4o-mini
 - Qwen2.5-72B (Qwen-72B)
 - Gemini 2.5 Flash
+- Gemini 2.5 Pro
 
 METRICS:
 - ASR (Attack Success Rate): Percentage of successful jailbreak attempts
@@ -30,16 +31,17 @@ METRICS:
 - Dist_Seed: Distance from original seed prompts (novelty measure)
 
 OUTPUTS:
-This script generates 12 high-resolution visualizations in the
+This script generates high-resolution visualizations in the
 'final results comparison/' directory:
 01. ASR vs Diversity trade-off scatter plot
 02. Improvement heatmap (% change from baseline)
 03. Grouped bar chart of ASR across models
 04. RTer vs User 4-panel comparison
 05. Three metrics progression line plots
-06. Per-model detailed rankings (5 separate charts)
+06. Per-model detailed rankings (6 separate charts)
 07. Distance from seed analysis
 08. Summary statistics table
+09. Overall method performance (averaged across all models)
 
 All visualizations are saved at 300 DPI for publication quality.
 
@@ -114,6 +116,17 @@ data = [
     {'Model': 'Gemini Flash', 'Method': 'RP + PG_Users', 'ASR': 0.17, 'Diversity': 0.64, 'Dist_Seed': 1.75},
     {'Model': 'Gemini Flash', 'Method': 'PG_RTers',      'ASR': 0.18, 'Diversity': 0.48, 'Dist_Seed': 1.71},
     {'Model': 'Gemini Flash', 'Method': 'PG_Users',      'ASR': 0.17, 'Diversity': 0.64, 'Dist_Seed': 1.00},
+
+    # --- Table 8: Gemini 2.5 Pro ---
+    {'Model': 'Gemini Pro', 'Method': 'RP (Baseline)', 'ASR': 0.18, 'Diversity': 0.58, 'Dist_Seed': 1.67},
+    {'Model': 'Gemini Pro', 'Method': 'RP + RTer0',    'ASR': 0.22, 'Diversity': 0.59, 'Dist_Seed': 1.55},
+    {'Model': 'Gemini Pro', 'Method': 'RP + RTer1',    'ASR': 0.21, 'Diversity': 0.56, 'Dist_Seed': 1.64},
+    {'Model': 'Gemini Pro', 'Method': 'RP + User0',    'ASR': 0.14, 'Diversity': 0.54, 'Dist_Seed': 1.60},
+    {'Model': 'Gemini Pro', 'Method': 'RP + User1',    'ASR': 0.13, 'Diversity': 0.62, 'Dist_Seed': 1.65},
+    {'Model': 'Gemini Pro', 'Method': 'RP + PG_RTers', 'ASR': 0.25, 'Diversity': 0.61, 'Dist_Seed': 1.73},
+    {'Model': 'Gemini Pro', 'Method': 'RP + PG_Users', 'ASR': 0.15, 'Diversity': 0.60, 'Dist_Seed': 1.77},
+    {'Model': 'Gemini Pro', 'Method': 'PG_RTers',      'ASR': 0.19, 'Diversity': 0.45, 'Dist_Seed': 1.62},
+    {'Model': 'Gemini Pro', 'Method': 'PG_Users',      'ASR': 0.15, 'Diversity': 0.60, 'Dist_Seed': 0.94},
 ]
 
 df = pd.DataFrame(data)
@@ -552,6 +565,79 @@ for i in range(len(summary_data)):
 plt.title('Summary Statistics: Mean and Standard Deviation Across Models',
          fontsize=16, pad=20, y=0.98)
 plt.savefig(output_dir / '08_summary_statistics.png', dpi=300, bbox_inches='tight')
+plt.close()
+
+# ---------------------------------------------------------
+# VISUALIZATION 9: Overall Method Performance (Averaged Across All Models)
+# ---------------------------------------------------------
+# PURPOSE: This scatter plot shows each method's overall performance averaged
+# across all 6 target models. Each point represents one experimental condition
+# (method), with coordinates being the mean ASR and mean Diversity across models.
+#
+# INSIGHTS TO LOOK FOR:
+# - Which methods achieve the best balance of high ASR and high Diversity?
+# - Do RTer methods cluster in a different region than User methods?
+# - Is there a clear Pareto frontier of optimal methods?
+# - How do generated personas (PG) compare to predefined personas overall?
+# ---------------------------------------------------------
+fig, ax = plt.subplots(figsize=(12, 9))
+
+# Calculate mean ASR and Diversity for each method across all models
+method_means = df.groupby('Method').agg({
+    'ASR': 'mean',
+    'Diversity': 'mean'
+}).reset_index()
+
+# Define markers and colors for each method
+markers = ['o', 's', '^', 'D', 'v', 'p', 'h', '*', 'X']
+colors = {
+    'RP (Baseline)': '#7f7f7f',  # Gray
+    'RP + RTer0': '#d62728',      # Red
+    'RP + RTer1': '#ff7f0e',      # Orange
+    'RP + User0': '#1f77b4',      # Blue
+    'RP + User1': '#17becf',      # Cyan
+    'RP + PG_RTers': '#e377c2',   # Pink
+    'RP + PG_Users': '#2ca02c',   # Green
+    'PG_RTers': '#9467bd',        # Purple
+    'PG_Users': '#8c564b',        # Brown
+}
+
+# Plot each method as a distinct point
+for i, (_, row) in enumerate(method_means.iterrows()):
+    method = row['Method']
+    ax.scatter(row['Diversity'], row['ASR'],
+              s=300,
+              marker=markers[i % len(markers)],
+              c=colors.get(method, '#333333'),
+              label=method,
+              edgecolors='black',
+              linewidths=1.5,
+              alpha=0.85,
+              zorder=3)
+
+# Add labels next to each point
+for _, row in method_means.iterrows():
+    ax.annotate(row['Method'],
+               (row['Diversity'], row['ASR']),
+               xytext=(8, 5),
+               textcoords='offset points',
+               fontsize=9,
+               alpha=0.8)
+
+ax.set_title('Overall Method Performance (Averaged Across 6 Models)', fontsize=16, pad=20)
+ax.set_xlabel('Mean Diversity Score', fontsize=13)
+ax.set_ylabel('Mean Attack Success Rate (ASR)', fontsize=13)
+ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
+ax.grid(True, alpha=0.3, zorder=1)
+
+# Add quadrant lines at median values for reference
+median_div = method_means['Diversity'].median()
+median_asr = method_means['ASR'].median()
+ax.axhline(y=median_asr, color='gray', linestyle='--', alpha=0.5, zorder=2)
+ax.axvline(x=median_div, color='gray', linestyle='--', alpha=0.5, zorder=2)
+
+plt.tight_layout()
+plt.savefig(output_dir / '09_overall_method_performance.png', dpi=300, bbox_inches='tight')
 plt.close()
 
 print(f"\nAll visualizations saved to '{output_dir}' directory!")
