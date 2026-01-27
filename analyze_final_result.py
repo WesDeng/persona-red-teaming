@@ -627,7 +627,8 @@ for _, row in method_means.iterrows():
 ax.set_title('Overall Method Performance (Averaged Across 6 Models)', fontsize=16, pad=20)
 ax.set_xlabel('Mean Diversity Score', fontsize=13)
 ax.set_ylabel('Mean Attack Success Rate (ASR)', fontsize=13)
-ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
+ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=11,
+          labelspacing=2.0, handletextpad=1.5, borderpad=1.5, markerscale=1.5)
 ax.grid(True, alpha=0.3, zorder=1)
 
 # Add quadrant lines at median values for reference
