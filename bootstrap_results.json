@@ -1,0 +1,618 @@
+{
+  "GPT-4o-mini / RP (Baseline)": {
+    "model": "GPT-4o-mini",
+    "method": "RP (Baseline)",
+    "exp_dir": "aws-results-exp-gpt-4o-mini-RP-baseline-20251216-225552",
+    "ASR": {
+      "point_estimate": 0.1545,
+      "std": 0.007986018641976742,
+      "ci_95_lower": 0.139,
+      "ci_95_upper": 0.1705,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.5961127320683073,
+      "self_bleu": 0.4038872679316927,
+      "std": 0.004837544733640229,
+      "ci_95_lower": 0.41858386653486074,
+      "ci_95_upper": 0.43736240848237046,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "GPT-4o-mini / RP + RTer0": {
+    "model": "GPT-4o-mini",
+    "method": "RP + RTer0",
+    "exp_dir": "aws-results-exp-gpt-4o-mini-RP-RTer0-20251215-004005",
+    "ASR": {
+      "point_estimate": 0.214,
+      "std": 0.009133624198531492,
+      "ci_95_lower": 0.1964875,
+      "ci_95_upper": 0.2315,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.46297924680644065,
+      "self_bleu": 0.5370207531935594,
+      "std": 0.004546937841766113,
+      "ci_95_lower": 0.3776547574624931,
+      "ci_95_upper": 0.3953312055524078,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "GPT-4o-mini / RP + RTer1": {
+    "model": "GPT-4o-mini",
+    "method": "RP + RTer1",
+    "exp_dir": "aws-results-exp-gpt-4o-mini-RP-RTer1-20251215-110041",
+    "ASR": {
+      "point_estimate": 0.2875,
+      "std": 0.010199605825716983,
+      "ci_95_lower": 0.2674875,
+      "ci_95_upper": 0.307,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.5230154654434216,
+      "self_bleu": 0.4769845345565784,
+      "std": 0.004757352184040121,
+      "ci_95_lower": 0.4480810814140981,
+      "ci_95_upper": 0.46617252259670416,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "GPT-4o-mini / RP + User0": {
+    "model": "GPT-4o-mini",
+    "method": "RP + User0",
+    "exp_dir": "aws-results-exp-gpt-4o-mini-RP-User0-20251215-204622",
+    "ASR": {
+      "point_estimate": 0.136,
+      "std": 0.007348813237523455,
+      "ci_95_lower": 0.1225,
+      "ci_95_upper": 0.152,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.49908344038633234,
+      "self_bleu": 0.5009165596136677,
+      "std": 0.004354396835568169,
+      "ci_95_lower": 0.38060610570897424,
+      "ci_95_upper": 0.398290428861081,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "GPT-4o-mini / RP + User1": {
+    "model": "GPT-4o-mini",
+    "method": "RP + User1",
+    "exp_dir": "aws-results-exp-gpt-4o-mini-RP-User1-20251216-052129",
+    "ASR": {
+      "point_estimate": 0.1475,
+      "std": 0.008093245269976686,
+      "ci_95_lower": 0.132,
+      "ci_95_upper": 0.1635,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.603511986171772,
+      "self_bleu": 0.39648801382822796,
+      "std": 0.004963496692568852,
+      "ci_95_lower": 0.42548340134642365,
+      "ci_95_upper": 0.44451326101617966,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Gemini Flash / PG_RTers": {
+    "model": "Gemini Flash",
+    "method": "PG_RTers",
+    "exp_dir": "aws-results-exp-gemini-flash-PG-Rter-20251227-034717",
+    "ASR": {
+      "point_estimate": 0.1765,
+      "std": 0.008482865023092137,
+      "ci_95_lower": 0.1604875,
+      "ci_95_upper": 0.193,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.4789259764000968,
+      "self_bleu": 0.5210740235999032,
+      "std": 0.0032077287002365684,
+      "ci_95_lower": 0.3157116516847391,
+      "ci_95_upper": 0.3281210370425407,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Gemini Flash / PG_Users": {
+    "model": "Gemini Flash",
+    "method": "PG_Users",
+    "exp_dir": "aws-results-exp-gemini-flash-PG-User-20251228-033117",
+    "ASR": {
+      "point_estimate": 0.473,
+      "std": 0.011036479046779355,
+      "ci_95_lower": 0.4519875,
+      "ci_95_upper": 0.4945,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.08866302565971662,
+      "self_bleu": 0.9113369743402834,
+      "std": 0.002164932880551655,
+      "ci_95_lower": 0.07349365800573607,
+      "ci_95_upper": 0.08199850799634095,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Gemini Flash / RP (Baseline)": {
+    "model": "Gemini Flash",
+    "method": "RP (Baseline)",
+    "exp_dir": "aws-results-exp-gemini-flash-RP-baseline-20251221-110317",
+    "ASR": {
+      "point_estimate": 0.1875,
+      "std": 0.008789850681325598,
+      "ci_95_lower": 0.1715,
+      "ci_95_upper": 0.2045,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.6135263406632494,
+      "self_bleu": 0.3864736593367506,
+      "std": 0.005054031811268268,
+      "ci_95_lower": 0.41439278112039235,
+      "ci_95_upper": 0.43445969909550286,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Gemini Flash / RP + PG_RTers": {
+    "model": "Gemini Flash",
+    "method": "RP + PG_RTers",
+    "exp_dir": "aws-results-exp-gemini-flash-RP-PG-Rter-20251226-032222",
+    "ASR": {
+      "point_estimate": 0.187,
+      "std": 0.008917082356354016,
+      "ci_95_lower": 0.1699875,
+      "ci_95_upper": 0.204,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.647332600437007,
+      "self_bleu": 0.352667399562993,
+      "std": 0.004940864230566728,
+      "ci_95_lower": 0.44755727912318405,
+      "ci_95_upper": 0.46659096236052605,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Gemini Flash / RP + PG_Users": {
+    "model": "Gemini Flash",
+    "method": "RP + PG_Users",
+    "exp_dir": "aws-results-exp-gemini-flash-RP-PG-User-20251226-142157",
+    "ASR": {
+      "point_estimate": 0.174,
+      "std": 0.008737196217895071,
+      "ci_95_lower": 0.1574875,
+      "ci_95_upper": 0.192,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.6368393856454481,
+      "self_bleu": 0.36316061435455194,
+      "std": 0.00494240686186163,
+      "ci_95_lower": 0.42176087407892804,
+      "ci_95_upper": 0.44157680171107105,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Gemini Flash / RP + RTer0": {
+    "model": "Gemini Flash",
+    "method": "RP + RTer0",
+    "exp_dir": "aws-results-exp-gemini-flash-RP-RTer0-20251225-053426",
+    "ASR": {
+      "point_estimate": 0.23,
+      "std": 0.009528180099053542,
+      "ci_95_lower": 0.2115,
+      "ci_95_upper": 0.249,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.4963694386814764,
+      "self_bleu": 0.5036305613185236,
+      "std": 0.004740064305033683,
+      "ci_95_lower": 0.36806292142599345,
+      "ci_95_upper": 0.3868724042902463,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Gemini Flash / RP + RTer1": {
+    "model": "Gemini Flash",
+    "method": "RP + RTer1",
+    "exp_dir": "aws-results-exp-gemini-flash-RP-RTer1-20251220-012158",
+    "ASR": {
+      "point_estimate": 0.22,
+      "std": 0.008890746298821042,
+      "ci_95_lower": 0.20298750000000002,
+      "ci_95_upper": 0.237,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.5919097229315302,
+      "self_bleu": 0.4080902770684698,
+      "std": 0.004624065762773052,
+      "ci_95_lower": 0.4403402529970813,
+      "ci_95_upper": 0.45839882506958085,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Gemini Flash / RP + User0": {
+    "model": "Gemini Flash",
+    "method": "RP + User0",
+    "exp_dir": "aws-results-exp-gemini-flash-RP-User0-20251221-022317",
+    "ASR": {
+      "point_estimate": 0.1575,
+      "std": 0.008414130911746028,
+      "ci_95_lower": 0.14,
+      "ci_95_upper": 0.1735,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.5731316492586713,
+      "self_bleu": 0.4268683507413287,
+      "std": 0.004463322439014885,
+      "ci_95_lower": 0.38176901498599153,
+      "ci_95_upper": 0.3990547485026695,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Gemini Flash / RP + User1": {
+    "model": "Gemini Flash",
+    "method": "RP + User1",
+    "exp_dir": "aws-results-exp-gemini-flash-RP-User1-20251221-024029",
+    "ASR": {
+      "point_estimate": 0.1315,
+      "std": 0.007458642235688746,
+      "ci_95_lower": 0.1165,
+      "ci_95_upper": 0.147,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.6558598138533722,
+      "self_bleu": 0.3441401861466278,
+      "std": 0.004932151246435942,
+      "ci_95_lower": 0.42841481168172985,
+      "ci_95_upper": 0.44786624579587003,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Qwen-72B / PG_RTers": {
+    "model": "Qwen-72B",
+    "method": "PG_RTers",
+    "exp_dir": "aws-results-exp-Qwen-72B-PG-Rter-20251228-202143",
+    "ASR": {
+      "point_estimate": 0.2315,
+      "std": 0.009352592568373752,
+      "ci_95_lower": 0.2145,
+      "ci_95_upper": 0.25051249999999997,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.34768155777734266,
+      "self_bleu": 0.6523184422226573,
+      "std": 0.00291813144509475,
+      "ci_95_lower": 0.3113394507520798,
+      "ci_95_upper": 0.32284202726348804,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Qwen-72B / PG_Users": {
+    "model": "Qwen-72B",
+    "method": "PG_Users",
+    "exp_dir": "aws-results-exp-Qwen-72B-PG-User-20251230-223236",
+    "ASR": {
+      "point_estimate": 0.214,
+      "std": 0.00954449201110253,
+      "ci_95_lower": 0.196,
+      "ci_95_upper": 0.233,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.10197873697095539,
+      "self_bleu": 0.8980212630290446,
+      "std": 0.002147779461566234,
+      "ci_95_lower": 0.06767397076284984,
+      "ci_95_upper": 0.07630566766101367,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Qwen-72B / RP (Baseline)": {
+    "model": "Qwen-72B",
+    "method": "RP (Baseline)",
+    "exp_dir": "aws-results-exp-qwen-RP-baseline-20251218-135903",
+    "ASR": {
+      "point_estimate": 0.0955,
+      "std": 0.006654602617737591,
+      "ci_95_lower": 0.0815,
+      "ci_95_upper": 0.1085,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.6220824673311445,
+      "self_bleu": 0.3779175326688555,
+      "std": 0.004650609449136934,
+      "ci_95_lower": 0.42634986935562375,
+      "ci_95_upper": 0.44489174104887774,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Qwen-72B / RP + PG_RTers": {
+    "model": "Qwen-72B",
+    "method": "RP + PG_RTers",
+    "exp_dir": "aws-results-exp-Qwen-72B-RP-PG-Rter-20251230-135047",
+    "ASR": {
+      "point_estimate": 0.15,
+      "std": 0.008021799985040766,
+      "ci_95_lower": 0.134975,
+      "ci_95_upper": 0.1665,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.605130337307998,
+      "self_bleu": 0.39486966269200197,
+      "std": 0.0050520628418230925,
+      "ci_95_lower": 0.43905984529706427,
+      "ci_95_upper": 0.4585935302318781,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Qwen-72B / RP + PG_Users": {
+    "model": "Qwen-72B",
+    "method": "RP + PG_Users",
+    "exp_dir": "aws-results-exp-Qwen-72B-RP-PG-User-20251230-012443",
+    "ASR": {
+      "point_estimate": 0.108,
+      "std": 0.0070165963258548665,
+      "ci_95_lower": 0.095,
+      "ci_95_upper": 0.1225,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.6503479713273381,
+      "self_bleu": 0.3496520286726619,
+      "std": 0.00505917327971142,
+      "ci_95_lower": 0.42913774885898454,
+      "ci_95_upper": 0.44831121492322734,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Qwen-72B / RP + RTer0": {
+    "model": "Qwen-72B",
+    "method": "RP + RTer0",
+    "exp_dir": "aws-results-exp-qwen-RP-RTer0-20251216-235052",
+    "ASR": {
+      "point_estimate": 0.1565,
+      "std": 0.008053648303719256,
+      "ci_95_lower": 0.1405,
+      "ci_95_upper": 0.173,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.489476687749131,
+      "self_bleu": 0.510523312250869,
+      "std": 0.0048729782655095675,
+      "ci_95_lower": 0.3770834288388688,
+      "ci_95_upper": 0.39736435704409034,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Qwen-72B / RP + RTer1": {
+    "model": "Qwen-72B",
+    "method": "RP + RTer1",
+    "exp_dir": "aws-results-exp-qwen-RP-RTer1-20251217-093446",
+    "ASR": {
+      "point_estimate": 0.228,
+      "std": 0.009247601188957058,
+      "ci_95_lower": 0.2095,
+      "ci_95_upper": 0.246,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.540623046982549,
+      "self_bleu": 0.45937695301745096,
+      "std": 0.004787462487460055,
+      "ci_95_lower": 0.4352799543647147,
+      "ci_95_upper": 0.4541803251141447,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Qwen-72B / RP + User0": {
+    "model": "Qwen-72B",
+    "method": "RP + User0",
+    "exp_dir": "aws-results-exp-qwen-RP-User0-20251217-181308",
+    "ASR": {
+      "point_estimate": 0.124,
+      "std": 0.0076998664761150255,
+      "ci_95_lower": 0.109,
+      "ci_95_upper": 0.1395,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.4595054709208005,
+      "self_bleu": 0.5404945290791995,
+      "std": 0.00423568002107059,
+      "ci_95_lower": 0.36496034249762777,
+      "ci_95_upper": 0.3815132645153908,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Qwen-72B / RP + User1": {
+    "model": "Qwen-72B",
+    "method": "RP + User1",
+    "exp_dir": "aws-results-exp-qwen-RP-User1-20251218-034814",
+    "ASR": {
+      "point_estimate": 0.104,
+      "std": 0.006887247617880455,
+      "ci_95_lower": 0.091,
+      "ci_95_upper": 0.1175,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.6108937448261538,
+      "self_bleu": 0.3891062551738462,
+      "std": 0.004897435554287136,
+      "ci_95_lower": 0.41449293783934177,
+      "ci_95_upper": 0.43425269311044645,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Qwen-7B / RP (Baseline)": {
+    "model": "Qwen-7B",
+    "method": "RP (Baseline)",
+    "exp_dir": "logs-qwen-RP-baseline",
+    "ASR": {
+      "point_estimate": 0.188,
+      "std": 0.008613866959734174,
+      "ci_95_lower": 0.1715,
+      "ci_95_upper": 0.2055,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.5533382998758007,
+      "self_bleu": 0.44666170012419926,
+      "std": 0.004864635062775525,
+      "ci_95_lower": 0.41623026737459257,
+      "ci_95_upper": 0.43485547086599524,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Qwen-7B / RP + RTer0": {
+    "model": "Qwen-7B",
+    "method": "RP + RTer0",
+    "exp_dir": "logs-qwen-RP-RTer0",
+    "ASR": {
+      "point_estimate": 0.263,
+      "std": 0.009789126301667585,
+      "ci_95_lower": 0.2445,
+      "ci_95_upper": 0.283,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.460166627285823,
+      "self_bleu": 0.539833372714177,
+      "std": 0.004506789502041745,
+      "ci_95_lower": 0.36994536058013355,
+      "ci_95_upper": 0.3870302748033494,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Qwen-7B / RP + RTer1": {
+    "model": "Qwen-7B",
+    "method": "RP + RTer1",
+    "exp_dir": "logs-qwen-RP-RTer1",
+    "ASR": {
+      "point_estimate": 0.311,
+      "std": 0.010449507930998483,
+      "ci_95_lower": 0.28998749999999995,
+      "ci_95_upper": 0.331,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.5364866538104667,
+      "self_bleu": 0.4635133461895333,
+      "std": 0.005000774006954514,
+      "ci_95_lower": 0.4464723866918283,
+      "ci_95_upper": 0.4661755857939653,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Qwen-7B / RP + User0": {
+    "model": "Qwen-7B",
+    "method": "RP + User0",
+    "exp_dir": "logs-qwen-RP-User0",
+    "ASR": {
+      "point_estimate": 0.1725,
+      "std": 0.0082381046212099,
+      "ci_95_lower": 0.157,
+      "ci_95_upper": 0.18902499999999997,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.5229580779135019,
+      "self_bleu": 0.4770419220864981,
+      "std": 0.004477845239113257,
+      "ci_95_lower": 0.384765591475267,
+      "ci_95_upper": 0.4024686690717401,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  },
+  "Qwen-7B / RP + User1": {
+    "model": "Qwen-7B",
+    "method": "RP + User1",
+    "exp_dir": "logs-qwen-RP-User1",
+    "ASR": {
+      "point_estimate": 0.1665,
+      "std": 0.008437346606013052,
+      "ci_95_lower": 0.151,
+      "ci_95_upper": 0.183,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    },
+    "diversity": {
+      "point_estimate": 0.6074128522022846,
+      "self_bleu": 0.3925871477977154,
+      "std": 0.004896822682382221,
+      "ci_95_lower": 0.4267129429619659,
+      "ci_95_upper": 0.44636021413653304,
+      "n_replicates": 1000,
+      "n_samples": 2000
+    }
+  }
+}
