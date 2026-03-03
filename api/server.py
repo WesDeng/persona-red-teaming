@@ -176,7 +176,7 @@ class SuggestMutationsResponse(BaseModel):
 mutator_llm = None
 target_llm = None
 guard = None
-suggestion_llm = None  # GPT-5.2 for mutation suggestions
+suggestion_llm = None  # GPT-4o for mutation suggestions
 seed_prompts_cache = []
 
 # Expanded pool of preselected high-quality seed prompts for testing
@@ -257,10 +257,10 @@ def initialize_llms():
         print("Please set OPENAI_API_KEY in your .env file or environment")
 
     # Initialize OpenAI clients with LLMConfig
-    mutator_model = "gpt-5.2"
-    target_model = "gpt-5.2"
-    guard_model = "gpt-5.2"
-    suggestion_model = "gpt-5.2"  # Use GPT-5.2 for suggestions
+    mutator_model = "gpt-4o-mini"
+    target_model = "gpt-4o-mini"
+    guard_model = "gpt-4o-mini"
+    suggestion_model = "gpt-4o"  # Use GPT-4o for suggestions
 
     mutator_config = LLMConfig(
         type_="openai",
@@ -820,7 +820,7 @@ async def suggest_mutations(request: SuggestMutationsRequest):
             persona=request.persona
         )
 
-        # Call GPT-5.2 for suggestions
+        # Call GPT-4o for suggestions
         sampling_params = {
             "temperature": 0.8,
             "max_tokens": 500,

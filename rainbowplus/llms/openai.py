@@ -46,17 +46,12 @@ class LLMviaOpenAI(BaseLLM):
             print(f"WARNING: Gemini OpenAI API does not support safety_settings parameter.")
             print(f"         Safety filters may block responses. Blocked responses will be marked as [BLOCKED].")
 
-        # GPT-5+ models require max_completion_tokens instead of max_tokens
-        params = dict(sampling_params)
-        if "max_tokens" in params and self.model_kwargs["model"].startswith("gpt-5"):
-            params["max_completion_tokens"] = params.pop("max_tokens")
-
         for attempt in range(max_retries):
             try:
                 response = self.client.chat.completions.create(
                     model=self.model_kwargs["model"],
                     messages=[{"role": "user", "content": query}],
-                    **params
+                    **sampling_params
                 )
 
                 # Validate response structure
@@ -115,14 +110,10 @@ class LLMviaOpenAI(BaseLLM):
     def generate_format(
         self, query: str, sampling_params: dict, response_format: BaseModel
     ):
-        params = dict(sampling_params)
-        if "max_tokens" in params and self.model_kwargs["model"].startswith("gpt-5"):
-            params["max_completion_tokens"] = params.pop("max_tokens")
-
         completion = self.client.beta.chat.completions.parse(
             model=self.model_kwargs["model"],
             messages=[{"role": "user", "content": query}],
-            **params,
+            **sampling_params,
             response_format=response_format
         )
         message = completion.choices[0].message

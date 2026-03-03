@@ -65,16 +65,12 @@ class OpenAIGuard(LLMviaOpenAI):
 
     @override
     def generate(self, query: str, sampling_params: dict):
-        params = dict(sampling_params)
-        if "max_tokens" in params and self.model_kwargs["model"].startswith("gpt-5"):
-            params["max_completion_tokens"] = params.pop("max_tokens")
-
         response = self.client.chat.completions.create(
             model=self.model_kwargs["model"],
             messages=[
                 {"role": "user", "content": query},
             ],
-            **params,
+            **sampling_params,
         )
         return response
 
