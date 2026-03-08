@@ -621,21 +621,23 @@ for _, row in method_means.iterrows():
                (row['Diversity'], row['ASR']),
                xytext=(8, 5),
                textcoords='offset points',
-               fontsize=9,
+               fontsize=11,
                alpha=0.8)
 
-ax.set_title('Overall Method Performance (Averaged Across 6 Models)', fontsize=16, pad=20)
-ax.set_xlabel('Mean Diversity Score', fontsize=13)
-ax.set_ylabel('Mean Attack Success Rate (ASR)', fontsize=13)
-ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=11,
+ax.set_title('Overall Method Performance (Averaged Across 6 Models)', fontsize=18, pad=20)
+ax.set_xlabel('Mean Diversity Score', fontsize=15)
+ax.set_ylabel('Mean Attack Success Rate (ASR)', fontsize=15)
+ax.tick_params(axis='both', labelsize=13)
+ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=12,
           labelspacing=2.0, handletextpad=1.5, borderpad=1.5, markerscale=1.5)
 ax.grid(True, alpha=0.3, zorder=1)
 
-# Add quadrant lines at median values for reference
-median_div = method_means['Diversity'].median()
-median_asr = method_means['ASR'].median()
-ax.axhline(y=median_asr, color='gray', linestyle='--', alpha=0.5, zorder=2)
-ax.axvline(x=median_div, color='gray', linestyle='--', alpha=0.5, zorder=2)
+# Add dashed lines at baseline values for reference
+baseline_row = method_means[method_means['Method'] == 'RP (Baseline)'].iloc[0]
+ax.axhline(y=baseline_row['ASR'], color='gray', linestyle='--', alpha=0.6, zorder=2,
+           label='_nolegend_')
+ax.axvline(x=baseline_row['Diversity'], color='gray', linestyle='--', alpha=0.6, zorder=2,
+           label='_nolegend_')
 
 plt.tight_layout()
 plt.savefig(output_dir / '09_overall_method_performance.png', dpi=300, bbox_inches='tight')
