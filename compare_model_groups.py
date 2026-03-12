@@ -94,10 +94,10 @@ df['ModelSize'] = df['Model'].apply(lambda m: 'Large' if m in LARGE_MODELS else 
 
 METHOD_ORDER = [
     'RP (Baseline)',
-    'RP + RTer0', 'RP + RTer1',
-    'RP + User0', 'RP + User1',
-    'RP + PG_RTers', 'RP + PG_Users',
-    'PG_RTers', 'PG_Users',
+    'RP + RTer1',
+    'RP + User1',
+    'RP + PG_RTers',
+    'RP + PG_Users',
 ]
 
 output_dir = Path('final results comparison')
